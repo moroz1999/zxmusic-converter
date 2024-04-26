@@ -1,0 +1,9 @@
+{
+  "name": "moroz1999/zxmusic-converter",
+  "description": "Small frontend for converting various ZX Spectrum native music formats to mp3",
+  "minimum-stability": "stable",
+  "license": "Unlicense",
+  "require-dev": {
+    "rector/rector": "^1.0"
+  }
+}
