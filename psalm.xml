@@ -6,5 +6,6 @@
 >
     <projectFiles>
         <directory name="src"/>
+        <directory name="public"/>
     </projectFiles>
 </psalm>

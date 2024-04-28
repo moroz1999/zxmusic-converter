@@ -28,9 +28,7 @@ readonly class Converter
             $originalBaseName = basename($config->originalFilePath);
 
             $convertedType = 'mp3';
-            /**
-             * @var string[] $output
-             */
+
             $output = [];
             $command = sprintf(
                 '%s --quiet --core-options aym.interpolation=2,aym.clockrate=%d,aym.type=%d,aym.layout=%d --frameduration=%d --%s filename="%s%s_[Subpath]",bitrate=320 "%s" 2>&1',
@@ -45,6 +43,9 @@ readonly class Converter
                 escapeshellarg($config->originalFilePath)
             );
             exec($command, $output);
+            /**
+             * @var string[] $output
+             */
             $result = $this->parseInfo($output, $originalBaseName);
             $this->moveGeneratedFiles($result, $config);
             $this->cleanupGeneratedFiles($config->resultPath, $config->baseName);
