@@ -13,7 +13,7 @@ final readonly class ConversionConfig
         public int    $chipType,
         public int    $frequency,
         public int    $frameDuration,
-        public string $resultPath
+        public string $resultDir
     )
     {
     }

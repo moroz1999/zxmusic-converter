@@ -33,29 +33,37 @@ readonly class MusicController
             return;
         }
 
-        $originalFile = isset($fileData['original']['tmp_name']) ? (string)$fileData['original']['tmp_name'] : null;
+        $tmpFilePath = isset($fileData['original']['tmp_name']) ? (string)$fileData['original']['tmp_name'] : null;
+        $originalFilename = isset($fileData['original']['name']) ? (string)$fileData['original']['name'] : null;
 
-        if ($originalFile === null || !is_uploaded_file($originalFile)) {
+        if ($tmpFilePath === null || $originalFilename === null || !is_uploaded_file($tmpFilePath)) {
             $this->responseHandler->sendError('Invalid file uploaded');
             return;
         }
-        $config = $this->createConfig($postData, $id);
+        $config = $this->createConfig($postData, $originalFilename, $id);
 
-        $uploadPath = $this->pathConfig->uploadPath . $id . '/';
-        $this->directories->prepareDirectory($uploadPath);
+        $this->directories->prepareDirectory($config->resultDir);
 
-        move_uploaded_file($originalFile, $config->originalFilePath);
+        move_uploaded_file($tmpFilePath, $config->originalFilePath);
 
         $result = $this->converter->convert($config);
 
         $this->responseHandler->sendSuccess($result);
     }
 
-    private function createConfig(array $postData, int $id): ConversionConfig
+    private function createConfig(
+        array  $postData,
+        string $uploadedFileName,
+        int    $id
+    ): ConversionConfig
     {
+        $extension = strtolower(pathinfo($uploadedFileName, PATHINFO_EXTENSION));
+
         $resultPath = $this->pathConfig->resultPath . $id . '/';
         $baseName = (string)($postData['baseName'] ?? 'default_name');
-        $originalFilePath = $this->pathConfig->uploadPath . $id . '/' . $baseName;
+        $baseName = basename($baseName);
+
+        $originalFilePath = $this->pathConfig->uploadPath . $id . '/' . $baseName . ".{$extension}";
 
         return new ConversionConfig(
             originalFilePath: $originalFilePath,
@@ -64,7 +72,7 @@ readonly class MusicController
             chipType: (int)($postData['chipType'] ?? 0),
             frequency: (int)($postData['frequency'] ?? 1750000),
             frameDuration: (int)($postData['frameDuration'] ?? 20000),
-            resultPath: $resultPath
+            resultDir: $resultPath
         );
     }
 }

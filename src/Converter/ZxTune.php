@@ -5,12 +5,12 @@ namespace ZxMusic\Converter;
 
 use ZxMusic\Dto\ConversionConfig;
 use ZxMusic\Dto\ConversionResult;
-use ZxMusic\Dto\PathConfig;
+use ZxMusic\Service\ConverterInterface;
 
 readonly class ZxTune implements ConverterInterface
 {
     public function __construct(
-        private PathConfig $pathConfig,
+        private string $converterPath,
     )
     {
     }
@@ -27,13 +27,13 @@ readonly class ZxTune implements ConverterInterface
             $output = [];
             $command = sprintf(
                 '%s --quiet --core-options aym.interpolation=2,aym.clockrate=%d,aym.type=%d,aym.layout=%d --frameduration=%d --%s filename="%s%s_[Subpath]",bitrate=320 "%s" 2>&1',
-                escapeshellcmd($this->pathConfig->converterPath . 'zxtune123.exe'),
+                escapeshellcmd($this->converterPath),
                 $config->frequency,
                 $config->chipType,
                 $config->channels,
                 $config->frameDuration,
                 $convertedType,
-                escapeshellarg($config->resultPath),
+                escapeshellarg($config->resultDir),
                 $config->baseName,
                 escapeshellarg($config->originalFilePath)
             );

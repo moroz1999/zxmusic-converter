@@ -3,12 +3,14 @@ declare(strict_types=1);
 
 namespace ZxMusic\Factory;
 
+use InvalidArgumentException;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\ContainerInterface;
 use Psr\Container\NotFoundExceptionInterface;
-use ZxMusic\Converter\ConverterInterface;
+use ZxMusic\Service\ConverterInterface;
+use ZxMusic\Service\ConverterType;
 
-class ConverterFactory
+readonly final class ConverterFactory
 {
 
     public function __construct(
@@ -20,16 +22,22 @@ class ConverterFactory
     }
 
     /**
-     * @param string $type
+     * @param ConverterType $type
      * @return ConverterInterface
      * @throws ContainerExceptionInterface
      * @throws NotFoundExceptionInterface
      */
-    public function getConverter(string $type): ConverterInterface
+    public function getConverter(ConverterType $type): ConverterInterface
     {
-        if (!isset($this->converterMap[$type])) {
-            throw new \InvalidArgumentException("Unsupported converter type: {$type}");
+        $typeKey = $type->value;
+
+        if (!isset($this->converterMap[$typeKey])) {
+            throw new InvalidArgumentException("Unsupported converter type: {$typeKey}");
         }
-        return $this->container->get($this->converterMap[$type]);
+        /**
+         * @var ConverterInterface $converter
+         */
+        $converter = $this->container->get($this->converterMap[$typeKey]);
+        return $converter;
     }
 }

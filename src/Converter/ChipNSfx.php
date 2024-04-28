@@ -9,7 +9,7 @@ use ZxMusic\Dto\ConversionConfig;
 use ZxMusic\Dto\ConversionResult;
 use ZxMusic\Service\ConverterInterface;
 
-readonly class Arkos implements ConverterInterface
+readonly class ChipNSfx implements ConverterInterface
 {
     public function __construct(
         private string          $converterPath,
@@ -30,7 +30,7 @@ readonly class Arkos implements ConverterInterface
             $wavName = $config->baseName . '.wav';
             $wavPath = $config->resultDir . $wavName;
             $command = sprintf(
-                '%s %s %s 2>&1',
+                '%s -w %s %s 2>&1',
                 escapeshellcmd($this->converterPath),
                 escapeshellarg($config->originalFilePath),
                 escapeshellarg($wavPath),
@@ -54,8 +54,8 @@ readonly class Arkos implements ConverterInterface
                 time: '',
                 channels: '3',
                 type: 'AY',
-                container: 'AKS',
-                program: 'Arkos Tracker 2.*',
+                container: 'CHP',
+                program: 'CHIPNSFX',
             );
             $results[] = $result;
         }

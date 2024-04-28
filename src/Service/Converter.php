@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace ZxMusic\Service;
 
-use ZxMusic\Converter\Constants;
+use Psr\Container\ContainerExceptionInterface;
+use Psr\Container\NotFoundExceptionInterface;
 use ZxMusic\Dto\ConversionResult;
 use ZxMusic\Dto\PathConfig;
 use ZxMusic\Dto\ConversionConfig;
@@ -20,16 +21,20 @@ readonly class Converter
     {
     }
 
+    /**
+     * @throws ContainerExceptionInterface
+     * @throws NotFoundExceptionInterface
+     */
     public function convert(ConversionConfig $config): array
     {
-        $converterType = Constants::ZXTUNE;
+        $converterType = ConverterTypeResolver::resolve($config->originalFilePath);
         $converter = $this->converterFactory->getConverter($converterType);
-        $this->directories->prepareDirectory($config->resultPath);
+        $this->directories->prepareDirectory($config->resultDir);
 
         $result = $converter->convert($config);
 
         $this->moveGeneratedFiles($result, $config);
-        $this->cleanupGeneratedFiles($config->resultPath, $config->baseName);
+        $this->cleanupGeneratedFiles($config->resultDir, $config->baseName);
 
         return $result;
     }
@@ -43,7 +48,7 @@ readonly class Converter
     private function moveGeneratedFiles(array $result, ConversionConfig $config): void
     {
         foreach ($result as $item) {
-            $resultPathFile = $config->resultPath . $item->convertedFile;
+            $resultPathFile = $config->resultDir . $item->convertedFile;
             if (is_file($resultPathFile)) {
                 $newPath = $this->pathConfig->musicPath . $item->mp3Name;
                 rename($resultPathFile, $newPath);

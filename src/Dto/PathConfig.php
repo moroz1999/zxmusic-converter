@@ -10,7 +10,6 @@ final readonly class PathConfig
         public string $uploadPath,
         public string $resultPath,
         public string $musicPath,
-        public string $converterPath
     )
     {
     }
