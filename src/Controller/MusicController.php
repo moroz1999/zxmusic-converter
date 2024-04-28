@@ -5,16 +5,17 @@ declare(strict_types=1);
 namespace ZxMusic\Controller;
 
 use JsonException;
-use RuntimeException;
 use ZxMusic\Dto\ConversionConfig;
 use ZxMusic\Dto\PathConfig;
 use ZxMusic\Response\ResponseHandler;
-use ZxMusic\Converter;
+use ZxMusic\Service\Converter;
+use ZxMusic\Service\Directories;
 
 readonly class MusicController
 {
     public function __construct(
         private Converter       $converter,
+        private Directories     $directories,
         private ResponseHandler $responseHandler,
         private PathConfig      $pathConfig
     )
@@ -41,10 +42,7 @@ readonly class MusicController
         $config = $this->createConfig($postData, $id);
 
         $uploadPath = $this->pathConfig->uploadPath . $id . '/';
-
-        if (!is_dir($uploadPath) && !mkdir($uploadPath) && !is_dir($uploadPath)) {
-            throw new RuntimeException(sprintf('Directory "%s" was not created', $uploadPath));
-        }
+        $this->directories->prepareDirectory($uploadPath);
 
         move_uploaded_file($originalFile, $config->originalFilePath);
 

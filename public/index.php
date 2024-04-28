@@ -4,6 +4,7 @@ declare(strict_types=1);
 use DI\ContainerBuilder;
 use ZxMusic\Controller\MusicController;
 use ZxMusic\Dto\PathConfig;
+use ZxMusic\Factory\ConverterFactory;
 use ZxMusic\Response\ResponseHandler;
 use function DI\create;
 
@@ -14,7 +15,7 @@ ini_set('max_execution_time', '1800');
 
 $containerBuilder = new ContainerBuilder();
 $containerBuilder->addDefinitions([
-    PathConfig::class => function () {
+    PathConfig::class => static function () {
         $rootPath = dirname(__DIR__) . '/';
         return new PathConfig(
             uploadPath: $rootPath . 'uploads/',
@@ -24,6 +25,14 @@ $containerBuilder->addDefinitions([
         );
     },
     ResponseHandler::class => create(ResponseHandler::class),
+    ConverterFactory::class => static function ($container) {
+        return new ConverterFactory(
+            $container,
+            [
+                ZxMusic\Converter\Constants::ZXTUNE => ZxMusic\Converter\ZxTune::class,
+                ZxMusic\Converter\Constants::ARKOS => ZxMusic\Converter\Arkos::class,
+            ]);
+    }
 ]);
 
 $container = $containerBuilder->build();

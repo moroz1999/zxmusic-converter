@@ -1,27 +1,22 @@
 <?php
-
 declare(strict_types=1);
 
-namespace ZxMusic;
+namespace ZxMusic\Converter;
 
-use RuntimeException;
+use ZxMusic\Dto\ConversionConfig;
 use ZxMusic\Dto\ConversionResult;
 use ZxMusic\Dto\PathConfig;
-use ZxMusic\Dto\ConversionConfig;
 
-readonly class Converter
+readonly class ZxTune implements ConverterInterface
 {
     public function __construct(
-        private PathConfig $pathConfig
+        private PathConfig $pathConfig,
     )
     {
-
     }
 
     public function convert(ConversionConfig $config): array
     {
-        $this->prepareDirectories($config->resultPath);
-
         $result = [];
 
         if (is_file($config->originalFilePath)) {
@@ -47,18 +42,10 @@ readonly class Converter
              * @var string[] $output
              */
             $result = $this->parseInfo($output, $originalBaseName);
-            $this->moveGeneratedFiles($result, $config);
-            $this->cleanupGeneratedFiles($config->resultPath, $config->baseName);
         }
         return $result;
     }
 
-    private function prepareDirectories(string $resultPath): void
-    {
-        if (!is_dir($resultPath) && !mkdir($resultPath, 0777, true) && !is_dir($resultPath)) {
-            throw new RuntimeException(sprintf('Directory "%s" was not created', $resultPath));
-        }
-    }
 
     /**
      * @param string[] $output
@@ -123,25 +110,4 @@ readonly class Converter
         }
     }
 
-    /**
-     * @param ConversionResult[] $result
-     * @return void
-     */
-    private function moveGeneratedFiles(array $result, ConversionConfig $config): void
-    {
-        foreach ($result as $item) {
-            $resultPathFile = $config->resultPath . $item->convertedFile;
-            if (is_file($resultPathFile)) {
-                $newPath = $this->pathConfig->musicPath . $item->mp3Name;
-                rename($resultPathFile, $newPath);
-            }
-        }
-    }
-
-    private function cleanupGeneratedFiles(string $resultPath, string $baseName): void
-    {
-        $pattern = $resultPath . $baseName . '*'; // Assume generated files follow some naming convention
-        array_map('unlink', glob($pattern));
-        rmdir($resultPath);
-    }
 }
