@@ -8,7 +8,8 @@
     "vimeo/psalm": "^5.23"
   },
   "require": {
-    "ext-zlib": "*"
+    "ext-zlib": "*",
+    "php-di/php-di": "^7.0"
   },
   "autoload": {
     "psr-4": {

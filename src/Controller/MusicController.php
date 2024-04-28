@@ -4,73 +4,69 @@ declare(strict_types=1);
 
 namespace ZxMusic\Controller;
 
-use ZxMusic\Dto\PathConfig;
-use ZxMusic\Converter;
+use JsonException;
+use RuntimeException;
 use ZxMusic\Dto\ConversionConfig;
-use Exception;
+use ZxMusic\Dto\PathConfig;
+use ZxMusic\Response\ResponseHandler;
+use ZxMusic\Converter;
 
-class MusicController
+readonly class MusicController
 {
-    private Converter $converter;
-    private PathConfig $pathConfig;
-
-    public function __construct(PathConfig $pathConfig)
+    public function __construct(
+        private Converter       $converter,
+        private ResponseHandler $responseHandler,
+        private PathConfig      $pathConfig
+    )
     {
-        $this->pathConfig = $pathConfig;
-        $this->converter = new Converter($pathConfig->converterPath);
     }
 
-    public function upload(array $postData, array $fileData): array
+    /**
+     * @throws JsonException
+     */
+    public function upload(array $postData, array $fileData): void
     {
-        $id = intval($postData['id'] ?? 0);
-        $channels = intval($postData['channels'] ?? 1);
-        $chipType = intval($postData['chipType'] ?? 0);
-        $frequency = intval($postData['frequency'] ?? 1750000);
-        $frameDuration = intval($postData['frameDuration'] ?? 20000);
-        $baseName = $postData['baseName'] ?? 'default_name';
-
-        $originalFile = $fileData['original']['tmp_name'] ?? null;
-        if (!$originalFile || !is_uploaded_file($originalFile)) {
-            throw new Exception("No file uploaded or file is not valid.");
+        $id = (int)($postData['id'] ?? 0);
+        if ($id === 0) {
+            $this->responseHandler->sendError('ID is required');
+            return;
         }
 
-        $originalFilePath = $this->pathConfig->uploadPath . $id . '/originalfile';
-        $resultPath = $this->pathConfig->resultPath . $id . '/';
+        $originalFile = isset($fileData['original']['tmp_name']) ? (string)$fileData['original']['tmp_name'] : null;
 
-        $this->prepareDirectories([$this->pathConfig->uploadPath . $id, $resultPath]);
+        if ($originalFile === null || !is_uploaded_file($originalFile)) {
+            $this->responseHandler->sendError('Invalid file uploaded');
+            return;
+        }
+        $config = $this->createConfig($postData, $id);
 
-        move_uploaded_file($originalFile, $originalFilePath);
+        $uploadPath = $this->pathConfig->uploadPath . $id . '/';
 
-        $config = new ConversionConfig(
-            originalFilePath: $originalFilePath,
-            baseName: $baseName,
-            channels: $channels,
-            chipType: $chipType,
-            frequency: $frequency,
-            frameDuration: $frameDuration,
-            resultPath: $resultPath
-        );
+        if (!is_dir($uploadPath) && !mkdir($uploadPath) && !is_dir($uploadPath)) {
+            throw new RuntimeException(sprintf('Directory "%s" was not created', $uploadPath));
+        }
+
+        move_uploaded_file($originalFile, $config->originalFilePath);
 
         $result = $this->converter->convert($config);
 
-        $this->cleanup($originalFilePath, $resultPath);
-
-        return $result;
+        $this->responseHandler->sendSuccess($result);
     }
 
-    private function prepareDirectories(array $paths): void
+    private function createConfig(array $postData, int $id): ConversionConfig
     {
-        foreach ($paths as $path) {
-            if (!is_dir($path)) {
-                mkdir($path, 0777, true);
-            }
-        }
-    }
+        $resultPath = $this->pathConfig->resultPath . $id . '/';
+        $baseName = (string)($postData['baseName'] ?? 'default_name');
+        $originalFilePath = $this->pathConfig->uploadPath . $id . '/' . $baseName;
 
-    private function cleanup(string $originalFilePath, string $resultPath): void
-    {
-        unlink($originalFilePath);
-        array_map('unlink', glob($resultPath . '*.*')); // Deletes all files in the result directory
-        rmdir($resultPath); // Finally, remove the directory itself
+        return new ConversionConfig(
+            originalFilePath: $originalFilePath,
+            baseName: $baseName,
+            channels: (int)($postData['channels'] ?? 1),
+            chipType: (int)($postData['chipType'] ?? 0),
+            frequency: (int)($postData['frequency'] ?? 1750000),
+            frameDuration: (int)($postData['frameDuration'] ?? 20000),
+            resultPath: $resultPath
+        );
     }
 }

@@ -1,27 +1,33 @@
 <?php
 declare(strict_types=1);
 
+use DI\ContainerBuilder;
 use ZxMusic\Controller\MusicController;
 use ZxMusic\Dto\PathConfig;
+use ZxMusic\Response\ResponseHandler;
+use function DI\create;
 
 require_once dirname(__DIR__) . '/vendor/autoload.php';
 
 ini_set('memory_limit', '320M');
 ini_set('max_execution_time', '1800');
 
-$rootPath = dirname(__DIR__) . '/';
-$pathConfig = new PathConfig(
-    uploadPath: $rootPath . 'uploads/',
-    resultPath: $rootPath . 'result/',
-    musicPath: $rootPath . 'public/music/',
-    converterPath: $rootPath . 'binaries/zxtune/'
-);
+$containerBuilder = new ContainerBuilder();
+$containerBuilder->addDefinitions([
+    PathConfig::class => function () {
+        $rootPath = dirname(__DIR__) . '/';
+        return new PathConfig(
+            uploadPath: $rootPath . 'uploads/',
+            resultPath: $rootPath . 'result/',
+            musicPath: $rootPath . 'public/music/',
+            converterPath: $rootPath . 'binaries/zxtune/'
+        );
+    },
+    ResponseHandler::class => create(ResponseHandler::class),
+]);
 
-$controller = new MusicController($pathConfig);
+$container = $containerBuilder->build();
 
-try {
-    $result = $controller->upload($_POST, $_FILES);
-    echo json_encode(['success' => true, 'data' => $result]);
-} catch (Exception $e) {
-    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
-}
+/** @var MusicController $controller */
+$controller = $container->get(MusicController::class);
+$controller->upload($_POST, $_FILES);
