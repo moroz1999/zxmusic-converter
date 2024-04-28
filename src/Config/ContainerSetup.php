@@ -30,9 +30,9 @@ class ContainerSetup
         $containerBuilder->addDefinitions([
             PathConfig::class => static function () use ($rootPath) {
                 return new PathConfig(
-                    uploadPath: $rootPath . 'uploads/',
-                    resultPath: $rootPath . 'result/',
-                    musicPath: $rootPath . 'public/music/',
+                    uploadPath: $rootPath . 'uploads' . DIRECTORY_SEPARATOR,
+                    resultPath: $rootPath . 'result' . DIRECTORY_SEPARATOR,
+                    musicPath: $rootPath . 'public' . DIRECTORY_SEPARATOR . 'music' . DIRECTORY_SEPARATOR,
                 );
             },
             ZxTune::class => static function () use ($rootPath) {

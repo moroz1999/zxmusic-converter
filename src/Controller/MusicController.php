@@ -42,6 +42,7 @@ readonly class MusicController
         }
         $config = $this->createConfig($postData, $originalFilename, $id);
 
+        $this->directories->prepareDirectory($config->originalDir);
         $this->directories->prepareDirectory($config->resultDir);
 
         move_uploaded_file($tmpFilePath, $config->originalFilePath);
@@ -58,21 +59,26 @@ readonly class MusicController
     ): ConversionConfig
     {
         $extension = strtolower(pathinfo($uploadedFileName, PATHINFO_EXTENSION));
+        if (!$extension) {
+            $extension = 'tmp';
+        }
 
-        $resultPath = $this->pathConfig->resultPath . $id . '/';
+        $resultPath = $this->pathConfig->resultPath . $id . DIRECTORY_SEPARATOR;
         $baseName = (string)($postData['baseName'] ?? 'default_name');
         $baseName = basename($baseName);
 
-        $originalFilePath = $this->pathConfig->uploadPath . $id . '/' . $baseName . ".{$extension}";
+        $originalDir = $this->pathConfig->uploadPath . $id . DIRECTORY_SEPARATOR;
+        $originalFilePath = $originalDir . $baseName . ".{$extension}";
 
         return new ConversionConfig(
+            originalDir: $originalDir,
             originalFilePath: $originalFilePath,
             baseName: $baseName,
             channels: (int)($postData['channels'] ?? 1),
             chipType: (int)($postData['chipType'] ?? 0),
             frequency: (int)($postData['frequency'] ?? 1750000),
             frameDuration: (int)($postData['frameDuration'] ?? 20000),
-            resultDir: $resultPath
+            resultDir: $resultPath,
         );
     }
 }

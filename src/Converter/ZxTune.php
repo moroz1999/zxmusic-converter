@@ -64,8 +64,9 @@ readonly class ZxTune implements ConverterInterface
                     $results[] = $this->createConversionResult($info);
                     $info = [];
                 }
-                $info['mp3Name'] = $baseName . (isset($matches[2]) ? str_ireplace(['/', '#'], ['_', '_'], $matches[2]) : '') . '.mp3';
-                $info['convertedFile'] = (isset($matches[0]) ? str_ireplace('?', '_', $matches[0]) : '') . '.mp3';
+                $fileName = pathinfo($baseName, PATHINFO_FILENAME);
+                $info['mp3Name'] = $fileName . (isset($matches[2]) ? str_ireplace(['/', '#'], ['_', '_'], $matches[2]) : '') . '.mp3';
+                $info['convertedFile'] = $fileName . '_' . (isset($matches[2]) ? str_ireplace('/', '_', $matches[2]) : '') . '.mp3';
             }
             $this->fillInfoFromLine($line, $info);
         }

@@ -7,6 +7,7 @@ namespace ZxMusic\Dto;
 final readonly class ConversionConfig
 {
     public function __construct(
+        public string $originalDir,
         public string $originalFilePath,
         public string $baseName,
         public int    $channels,

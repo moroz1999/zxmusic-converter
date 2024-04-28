@@ -9,7 +9,7 @@ require_once dirname(__DIR__) . '/vendor/autoload.php';
 ini_set('memory_limit', '320M');
 ini_set('max_execution_time', '1800');
 
-$rootPath = dirname(__DIR__) . '/';
+$rootPath = dirname(__DIR__) . DIRECTORY_SEPARATOR;
 $container = ContainerSetup::setup($rootPath);
 
 /** @var MusicController $controller */
