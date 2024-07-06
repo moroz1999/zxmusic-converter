@@ -77,6 +77,7 @@ class AksInformationParser
                     (string)($aks->title ?? ''),
                     (string)($aks->author ?? ''),
                     Version::VERSION2,
+                    null,
                     null
                 );
             }
@@ -85,7 +86,8 @@ class AksInformationParser
                     (string)($xml->Name ?? ''),
                     (string)($xml->Author ?? ''),
                     Version::VERSION1,
-                    (int)($xml->MasterFrequency ?? 1770000)
+                    (int)($xml->MasterFrequency ?? 1770000),
+                    (string)($xml->Version)
                 );
             }
         }

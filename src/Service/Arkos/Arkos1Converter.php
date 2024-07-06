@@ -68,7 +68,7 @@ readonly class Arkos1Converter implements ConverterInterface
                 channels: $firstResult->channels,
                 type: 'AKS',
                 container: 'AKS',
-                program: 'Arkos Tracker 1.*',
+                program: $info->trackerVersion,
             );
             $results[] = $result;
         }

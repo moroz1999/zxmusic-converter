@@ -36,11 +36,10 @@ readonly class Arkos2Converter implements ConverterInterface
                 escapeshellarg($config->originalFilePath),
                 escapeshellarg($wavPath),
             );
-            exec($command);
+            exec($command, $output);
             if (!is_file($wavPath)) {
                 throw new RuntimeException("Could not produce wave file {$wavName}");
             }
-            $info = $this->aksInformationParser->getAksInformation($config->originalFilePath);
 
             $mp3Name = $config->baseName . '.mp3';
             $mp3Path = $config->resultDir . $mp3Name;
@@ -48,6 +47,8 @@ readonly class Arkos2Converter implements ConverterInterface
             if (!is_file($mp3Path)) {
                 throw new RuntimeException("Mp3 file is missing {$mp3Name}");
             }
+
+            $info = $this->aksInformationParser->getAksInformation($config->originalFilePath);
             $result = new ConversionResult(
                 mp3Name: $mp3Name,
                 convertedFile: $mp3Name,

@@ -9,7 +9,8 @@ readonly class ParsedInformation
         public string  $title,
         public string  $author,
         public Version $formatVersion,
-        public ?int    $frequency
+        public ?int    $frequency,
+        public ?string $trackerVersion
     )
     {
     }

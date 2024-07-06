@@ -3,6 +3,7 @@
 namespace ZxMusic\Service\FfmpegConverter;
 
 use Exception;
+use RuntimeException;
 
 class FfmpegConverter
 {
@@ -25,9 +26,9 @@ class FfmpegConverter
                 escapeshellarg($wavPath),
                 escapeshellarg($mp3Path),
             );
-            exec($command);
-            if (!is_file($wavPath)) {
-                throw new Exception("Could not convert wave file {$wavPath} to mp3");
+            exec($command, $output);
+            if (!is_file($mp3Path)) {
+                throw new RuntimeException("Could not convert wave file {$wavPath} to mp3");
             }
         }
     }
