@@ -8,7 +8,7 @@ use JsonException;
 use ZxMusic\Dto\ConversionConfig;
 use ZxMusic\Dto\PathConfig;
 use ZxMusic\Response\ResponseHandler;
-use ZxMusic\Service\Converter;
+use ZxMusic\Service\Converter\Converter;
 use ZxMusic\Service\Directories;
 
 readonly class MusicController

@@ -1,15 +1,16 @@
 <?php
 declare(strict_types=1);
 
-namespace ZxMusic\Converter;
+namespace ZxMusic\Service\Arkos;
 
 use Exception;
 use RuntimeException;
 use ZxMusic\Dto\ConversionConfig;
 use ZxMusic\Dto\ConversionResult;
-use ZxMusic\Service\ConverterInterface;
+use ZxMusic\Service\Converter\ConverterInterface;
+use ZxMusic\Service\FfmpegConverter\FfmpegConverter;
 
-readonly class Furnace implements ConverterInterface
+readonly class Arkos2Converter implements ConverterInterface
 {
     public function __construct(
         private string          $converterPath,
@@ -19,7 +20,7 @@ readonly class Furnace implements ConverterInterface
     }
 
     /**
-     * @throws RuntimeException
+     * @throws RuntimeException|Exception
      */
     public function convert(ConversionConfig $config): array
     {
@@ -29,10 +30,10 @@ readonly class Furnace implements ConverterInterface
             $wavName = $config->baseName . '.wav';
             $wavPath = $config->resultDir . $wavName;
             $command = sprintf(
-                '%s -output %s %s 2>&1',
+                '%s %s %s 2>&1',
                 escapeshellcmd($this->converterPath),
-                escapeshellarg($wavPath),
                 escapeshellarg($config->originalFilePath),
+                escapeshellarg($wavPath),
             );
             exec($command);
             if (!is_file($wavPath)) {
@@ -52,9 +53,9 @@ readonly class Furnace implements ConverterInterface
                 author: '',
                 time: '',
                 channels: '3',
-                type: 'AY',
-                container: 'FUR',
-                program: 'Furnace 0.6.*',
+                type: 'AKS',
+                container: 'AKS',
+                program: 'Arkos Tracker 2.*',
             );
             $results[] = $result;
         }

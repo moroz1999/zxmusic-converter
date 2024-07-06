@@ -1,15 +1,16 @@
 <?php
 declare(strict_types=1);
 
-namespace ZxMusic\Converter;
+namespace ZxMusic\Service\ChipNSfx;
 
 use Exception;
 use RuntimeException;
 use ZxMusic\Dto\ConversionConfig;
 use ZxMusic\Dto\ConversionResult;
-use ZxMusic\Service\ConverterInterface;
+use ZxMusic\Service\Converter\ConverterInterface;
+use ZxMusic\Service\FfmpegConverter\FfmpegConverter;
 
-readonly class ChipNSfx implements ConverterInterface
+readonly class ChipNSfxConverter implements ConverterInterface
 {
     public function __construct(
         private string          $converterPath,
@@ -53,7 +54,7 @@ readonly class ChipNSfx implements ConverterInterface
                 author: '',
                 time: '',
                 channels: '3',
-                type: 'AY',
+                type: 'CHP',
                 container: 'CHP',
                 program: 'CHIPNSFX',
             );

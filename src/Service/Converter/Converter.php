@@ -2,21 +2,23 @@
 
 declare(strict_types=1);
 
-namespace ZxMusic\Service;
+namespace ZxMusic\Service\Converter;
 
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\NotFoundExceptionInterface;
+use ZxMusic\Dto\ConversionConfig;
 use ZxMusic\Dto\ConversionResult;
 use ZxMusic\Dto\PathConfig;
-use ZxMusic\Dto\ConversionConfig;
 use ZxMusic\Factory\ConverterFactory;
+use ZxMusic\Service\Directories;
 
 readonly class Converter
 {
     public function __construct(
-        private PathConfig       $pathConfig,
-        private Directories      $directories,
-        private ConverterFactory $converterFactory,
+        private PathConfig            $pathConfig,
+        private Directories           $directories,
+        private ConverterFactory      $converterFactory,
+        private ConverterTypeResolver $converterTypeResolver,
     )
     {
     }
@@ -27,7 +29,7 @@ readonly class Converter
      */
     public function convert(ConversionConfig $config): array
     {
-        $converterType = ConverterTypeResolver::resolve($config->originalFilePath);
+        $converterType = $this->converterTypeResolver->resolve($config->originalFilePath);
         $converter = $this->converterFactory->getConverter($converterType);
         $this->directories->prepareDirectory($config->resultDir);
 

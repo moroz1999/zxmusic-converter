@@ -1,13 +1,13 @@
 <?php
 declare(strict_types=1);
 
-namespace ZxMusic\Converter;
+namespace ZxMusic\Service\ZxTune;
 
 use ZxMusic\Dto\ConversionConfig;
 use ZxMusic\Dto\ConversionResult;
-use ZxMusic\Service\ConverterInterface;
+use ZxMusic\Service\Converter\ConverterInterface;
 
-readonly class ZxTune implements ConverterInterface
+readonly class ZxTuneConverter implements ConverterInterface
 {
     public function __construct(
         private string $converterPath,

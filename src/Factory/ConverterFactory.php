@@ -7,8 +7,8 @@ use InvalidArgumentException;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\ContainerInterface;
 use Psr\Container\NotFoundExceptionInterface;
-use ZxMusic\Service\ConverterInterface;
-use ZxMusic\Service\ConverterType;
+use ZxMusic\Service\Converter\ConverterInterface;
+use ZxMusic\Service\Converter\ConverterType;
 
 readonly final class ConverterFactory
 {
@@ -22,8 +22,8 @@ readonly final class ConverterFactory
     }
 
     /**
-     * @param ConverterType $type
-     * @return ConverterInterface
+     * @param \ZxMusic\Service\Converter\ConverterType $type
+     * @return \ZxMusic\Service\Converter\ConverterInterface
      * @throws ContainerExceptionInterface
      * @throws NotFoundExceptionInterface
      */
@@ -35,7 +35,7 @@ readonly final class ConverterFactory
             throw new InvalidArgumentException("Unsupported converter type: {$typeKey}");
         }
         /**
-         * @var ConverterInterface $converter
+         * @var \ZxMusic\Service\Converter\ConverterInterface $converter
          */
         $converter = $this->container->get($this->converterMap[$typeKey]);
         return $converter;

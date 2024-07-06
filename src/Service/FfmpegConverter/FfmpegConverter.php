@@ -1,6 +1,6 @@
 <?php
 
-namespace ZxMusic\Converter;
+namespace ZxMusic\Service\FfmpegConverter;
 
 use Exception;
 

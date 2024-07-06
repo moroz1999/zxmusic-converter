@@ -9,7 +9,10 @@
   },
   "require": {
     "ext-zlib": "*",
-    "php-di/php-di": "^7.0"
+    "php-di/php-di": "^7.0",
+    "ext-zip": "*",
+    "ext-libxml": "*",
+    "ext-simplexml": "*"
   },
   "autoload": {
     "psr-4": {

@@ -8,15 +8,16 @@ use DI\Container;
 use DI\ContainerBuilder;
 use Exception;
 use Psr\Container\ContainerInterface;
-use ZxMusic\Converter\Arkos;
-use ZxMusic\Converter\ChipNSfx;
-use ZxMusic\Converter\FfmpegConverter;
-use ZxMusic\Converter\Furnace;
-use ZxMusic\Converter\ZxTune;
 use ZxMusic\Dto\PathConfig;
 use ZxMusic\Factory\ConverterFactory;
 use ZxMusic\Response\ResponseHandler;
-use ZxMusic\Service\ConverterType;
+use ZxMusic\Service\Arkos\Arkos1Converter;
+use ZxMusic\Service\Arkos\Arkos2Converter;
+use ZxMusic\Service\ChipNSfx\ChipNSfxConverter;
+use ZxMusic\Service\Converter\ConverterType;
+use ZxMusic\Service\FfmpegConverter\FfmpegConverter;
+use ZxMusic\Service\Furnace\FurnaceConverter;
+use ZxMusic\Service\ZxTune\ZxTuneConverter;
 use function DI\create;
 
 class ContainerSetup
@@ -35,25 +36,31 @@ class ContainerSetup
                     musicPath: $rootPath . 'public' . DIRECTORY_SEPARATOR . 'music' . DIRECTORY_SEPARATOR,
                 );
             },
-            ZxTune::class => static function () use ($rootPath) {
-                return new ZxTune(
+            ZxTuneConverter::class => static function () use ($rootPath) {
+                return new ZxTuneConverter(
                     $rootPath . 'binaries/zxtune/zxtune123.exe'
                 );
             },
-            Furnace::class => static function (ContainerInterface $container) use ($rootPath) {
-                return new Furnace(
+            FurnaceConverter::class => static function (ContainerInterface $container) use ($rootPath) {
+                return new FurnaceConverter(
                     $rootPath . 'binaries/furnace/furnace.exe',
                     $container->get(FfmpegConverter::class),
                 );
             },
-            Arkos::class => static function (ContainerInterface $container) use ($rootPath) {
-                return new Arkos(
-                    $rootPath . 'binaries/arkos/tools/SongToWav.exe',
+            Arkos1Converter::class => static function (ContainerInterface $container) use ($rootPath) {
+                return new Arkos1Converter(
+                    $rootPath . 'binaries/arkos1/Tools/AKSToYM.exe',
+                    $container->get(ZxTuneConverter::class),
+                );
+            },
+            Arkos2Converter::class => static function (ContainerInterface $container) use ($rootPath) {
+                return new Arkos2Converter(
+                    $rootPath . 'binaries/arkos2/tools/SongToWav.exe',
                     $container->get(FfmpegConverter::class),
                 );
             },
-            ChipNSfx::class => static function (ContainerInterface $container) use ($rootPath) {
-                return new ChipNSfx(
+            ChipNSfxConverter::class => static function (ContainerInterface $container) use ($rootPath) {
+                return new ChipNSfxConverter(
                     $rootPath . 'binaries/chipnsfx/CHIPNSFX.EXE',
                     $container->get(FfmpegConverter::class),
                 );
@@ -68,10 +75,11 @@ class ContainerSetup
                 return new ConverterFactory(
                     $container,
                     [
-                        ConverterType::ZXTUNE->value => ZxTune::class,
-                        ConverterType::ARKOS->value => Arkos::class,
-                        ConverterType::FURNACE->value => Furnace::class,
-                        ConverterType::CHIPNSFX->value => ChipNSfx::class,
+                        ConverterType::ZXTUNE->value => ZxTuneConverter::class,
+                        ConverterType::ARKOS1->value => Arkos1Converter::class,
+                        ConverterType::ARKOS2->value => Arkos2Converter::class,
+                        ConverterType::FURNACE->value => FurnaceConverter::class,
+                        ConverterType::CHIPNSFX->value => ChipNSfxConverter::class,
                     ]
                 );
             }

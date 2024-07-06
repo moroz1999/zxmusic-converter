@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace ZxMusic\Service;
+namespace ZxMusic\Service\Converter;
 
 use ZxMusic\Dto\ConversionConfig;
 use ZxMusic\Dto\ConversionResult;
