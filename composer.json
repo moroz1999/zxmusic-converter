@@ -12,7 +12,8 @@
     "php-di/php-di": "^7.0",
     "ext-zip": "*",
     "ext-libxml": "*",
-    "ext-simplexml": "*"
+    "ext-simplexml": "*",
+    "ext-fileinfo": "*"
   },
   "autoload": {
     "psr-4": {

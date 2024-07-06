@@ -6,14 +6,16 @@ namespace ZxMusic\Service\Arkos;
 use Exception;
 use RuntimeException;
 use ZxMusic\Dto\ConversionConfig;
+use ZxMusic\Dto\ConversionResult;
 use ZxMusic\Service\Converter\ConverterInterface;
 use ZxMusic\Service\ZxTune\ZxTuneConverter;
 
 readonly class Arkos1Converter implements ConverterInterface
 {
     public function __construct(
-        private string          $converterPath,
-        private ZxTuneConverter $zxTuneConverter,
+        private string               $converterPath,
+        private ZxTuneConverter      $zxTuneConverter,
+        private AksInformationParser $aksInformationParser,
     )
     {
     }
@@ -23,6 +25,7 @@ readonly class Arkos1Converter implements ConverterInterface
      */
     public function convert(ConversionConfig $config): array
     {
+        $results = [];
         if (is_file($config->originalFilePath)) {
             $ymName = $config->baseName . '.ym';
             $ymPath = $config->resultDir . $ymName;
@@ -38,21 +41,39 @@ readonly class Arkos1Converter implements ConverterInterface
                 throw new RuntimeException("Could not produce YM file {$ymName}: " . implode($output));
             }
 
+            $info = $this->aksInformationParser->getAksInformation($config->originalFilePath);
+
             $zxTuneConfig = new ConversionConfig(
                 $config->originalDir,
-                $config->originalFilePath,
+                $ymPath,
                 $config->baseName,
                 $config->channels,
                 $config->chipType,
-                $config->frequency,
+                $info->frequency,
                 $config->frameDuration,
                 $config->resultDir
             );
 
-            return $this->zxTuneConverter->convert($zxTuneConfig);
+            $zxTuneResults = $this->zxTuneConverter->convert($zxTuneConfig);
+            /**
+             * @var ConversionResult $firstResult
+             */
+            $firstResult = reset($zxTuneResults);
+            $result = new ConversionResult(
+                mp3Name: $firstResult->mp3Name,
+                convertedFile: $firstResult->convertedFile,
+                title: $info->title,
+                author: $info->author,
+                time: $firstResult->time,
+                channels: $firstResult->channels,
+                type: 'AKS',
+                container: 'AKS',
+                program: 'Arkos Tracker 1.*',
+            );
+            $results[] = $result;
         }
 
-        throw new RuntimeException("File not found {$config->originalFilePath}");
+        return $results;
 
     }
 }

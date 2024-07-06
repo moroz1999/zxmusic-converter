@@ -74,9 +74,9 @@ readonly class MusicController
             originalDir: $originalDir,
             originalFilePath: $originalFilePath,
             baseName: $baseName,
-            channels: (int)($postData['channels'] ?? 1),
+            channels: (int)($postData['channels'] ?? 0),
             chipType: (int)($postData['chipType'] ?? 0),
-            frequency: (int)($postData['frequency'] ?? 1750000),
+            frequency: (int)($postData['frequency'] ?? 1770000),
             frameDuration: (int)($postData['frameDuration'] ?? 20000),
             resultDir: $resultPath,
         );

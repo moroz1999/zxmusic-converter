@@ -13,8 +13,9 @@ use ZxMusic\Service\FfmpegConverter\FfmpegConverter;
 readonly class Arkos2Converter implements ConverterInterface
 {
     public function __construct(
-        private string          $converterPath,
-        private FfmpegConverter $ffmpegConverter,
+        private string               $converterPath,
+        private FfmpegConverter      $ffmpegConverter,
+        private AksInformationParser $aksInformationParser,
     )
     {
     }
@@ -39,6 +40,7 @@ readonly class Arkos2Converter implements ConverterInterface
             if (!is_file($wavPath)) {
                 throw new RuntimeException("Could not produce wave file {$wavName}");
             }
+            $info = $this->aksInformationParser->getAksInformation($config->originalFilePath);
 
             $mp3Name = $config->baseName . '.mp3';
             $mp3Path = $config->resultDir . $mp3Name;
@@ -49,8 +51,8 @@ readonly class Arkos2Converter implements ConverterInterface
             $result = new ConversionResult(
                 mp3Name: $mp3Name,
                 convertedFile: $mp3Name,
-                title: '',
-                author: '',
+                title: $info->title,
+                author: $info->author,
                 time: '',
                 channels: '3',
                 type: 'AKS',

@@ -15,6 +15,9 @@ readonly class ZxTuneConverter implements ConverterInterface
     {
     }
 
+    /**
+     * @return ConversionResult[]
+     */
     public function convert(ConversionConfig $config): array
     {
         $result = [];
@@ -46,10 +49,8 @@ readonly class ZxTuneConverter implements ConverterInterface
         return $result;
     }
 
-
     /**
      * @param string[] $output
-     * @param string $baseName
      * @return ConversionResult[]
      */
     private function parseInfo(array $output, string $baseName): array

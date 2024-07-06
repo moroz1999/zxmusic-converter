@@ -11,6 +11,7 @@ use Psr\Container\ContainerInterface;
 use ZxMusic\Dto\PathConfig;
 use ZxMusic\Factory\ConverterFactory;
 use ZxMusic\Response\ResponseHandler;
+use ZxMusic\Service\Arkos\AksInformationParser;
 use ZxMusic\Service\Arkos\Arkos1Converter;
 use ZxMusic\Service\Arkos\Arkos2Converter;
 use ZxMusic\Service\ChipNSfx\ChipNSfxConverter;
@@ -51,12 +52,14 @@ class ContainerSetup
                 return new Arkos1Converter(
                     $rootPath . 'binaries/arkos1/Tools/AKSToYM.exe',
                     $container->get(ZxTuneConverter::class),
+                    $container->get(AksInformationParser::class),
                 );
             },
             Arkos2Converter::class => static function (ContainerInterface $container) use ($rootPath) {
                 return new Arkos2Converter(
                     $rootPath . 'binaries/arkos2/tools/SongToWav.exe',
                     $container->get(FfmpegConverter::class),
+                    $container->get(AksInformationParser::class),
                 );
             },
             ChipNSfxConverter::class => static function (ContainerInterface $container) use ($rootPath) {

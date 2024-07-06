@@ -8,7 +8,8 @@ readonly class ParsedInformation
     public function __construct(
         public string  $title,
         public string  $author,
-        public Version $formatVersion
+        public Version $formatVersion,
+        public ?int    $frequency
     )
     {
     }
