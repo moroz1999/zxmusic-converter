@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir E:\\\\projects\\\\zxmusic-converter:*)",
+      "Bash(claude mcp:*)"
+    ]
+  }
+}

@@ -22,8 +22,6 @@ readonly final class ConverterFactory
     }
 
     /**
-     * @param \ZxMusic\Service\Converter\ConverterType $type
-     * @return \ZxMusic\Service\Converter\ConverterInterface
      * @throws ContainerExceptionInterface
      * @throws NotFoundExceptionInterface
      */
@@ -35,7 +33,7 @@ readonly final class ConverterFactory
             throw new InvalidArgumentException("Unsupported converter type: {$typeKey}");
         }
         /**
-         * @var \ZxMusic\Service\Converter\ConverterInterface $converter
+         * @var ConverterInterface $converter
          */
         $converter = $this->container->get($this->converterMap[$typeKey]);
         return $converter;
