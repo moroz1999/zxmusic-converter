@@ -47,7 +47,7 @@ class ContainerSetup
                 return new PathConfig(
                     uploadPath: $rootPath . 'uploads' . DIRECTORY_SEPARATOR,
                     resultPath: $rootPath . 'result' . DIRECTORY_SEPARATOR,
-                    musicPath: $rootPath . 'public' . DIRECTORY_SEPARATOR . 'music' . DIRECTORY_SEPARATOR,
+                    musicPath: dirname(rtrim($rootPath, DIRECTORY_SEPARATOR)) . DIRECTORY_SEPARATOR . 'music' . DIRECTORY_SEPARATOR . 'music' . DIRECTORY_SEPARATOR,
                 );
             },
             ZxTuneConverter::class => static function () use ($rootPath) {

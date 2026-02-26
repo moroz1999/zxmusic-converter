@@ -51,8 +51,10 @@ readonly class Converter
             );
         }
 
+        $this->directories->prepareDirectory($this->pathConfig->musicPath);
         $this->moveGeneratedFiles($result, $config);
         $this->cleanupGeneratedFiles($config->resultDir, $config->baseName);
+        $this->cleanupOriginalFile($config->originalDir);
 
         $this->logger->info('Conversion succeeded', ['count' => count($result)]);
 
@@ -95,5 +97,13 @@ readonly class Converter
         $pattern = $resultPath . $baseName . '*';
         array_map('unlink', glob($pattern));
         rmdir($resultPath);
+    }
+
+    private function cleanupOriginalFile(string $originalDir): void
+    {
+        array_map('unlink', glob($originalDir . '*') ?: []);
+        if (is_dir($originalDir)) {
+            rmdir($originalDir);
+        }
     }
 }
