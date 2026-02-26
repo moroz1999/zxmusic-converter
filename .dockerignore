@@ -1,0 +1,6 @@
+vendor/
+.git/
+.idea/
+uploads/
+result/
+music/music/

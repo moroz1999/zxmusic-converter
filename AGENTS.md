@@ -34,61 +34,77 @@ Read ONLY the documents relevant to your task.
 
 ## PROJECT STRUCTURE
 
+The repository is structured for shared hosting where multiple projects coexist.
+`music/` is the public web root (DocumentRoot). `music_back/` is the backend,
+placed outside the web root and accessed via relative path from `music/index.php`.
+
+`ContainerSetup` receives `$rootPath` pointing to `music_back/` and resolves all
+runtime paths (`binaries/`, `uploads/`, `result/`) relative to it.
+
 ```
 zxmusic-converter/
-├── public/
-│   ├── index.php               # Entry point: bootstraps DI container, dispatches to MusicController
-│   └── music/                  # Final MP3 output (publicly accessible)
-├── src/
-│   ├── Config/
-│   │   └── ContainerSetup.php  # PHP-DI container wiring (all bindings)
-│   ├── Controller/
-│   │   └── MusicController.php # HTTP layer: validates upload, builds ConversionConfig, calls Converter
-│   ├── Dto/
-│   │   ├── ApiResponse.php     # JSON envelope: {success, data, error}
-│   │   ├── ConversionConfig.php# Input for converters: paths, chip params (frequency, chipType, channels, frameDuration)
-│   │   ├── ConversionResult.php# Output of converters: mp3Name, title, author, time, channels, type, container, program
-│   │   └── PathConfig.php      # Configured root paths: uploadPath, resultPath, musicPath
-│   ├── Factory/
-│   │   └── ConverterFactory.php# Resolves ConverterInterface by ConverterType enum via DI container
-│   ├── Response/
-│   │   └── ResponseHandler.php # Sends gzip-encoded JSON HTTP response
-│   └── Service/
-│       ├── Directories.php     # Utility: creates directories recursively
-│       ├── Arkos/
-│       │   ├── AksInformationParser.php  # Extracts XML from .aks (ZIP or GZIP), parses title/author/version/frequency
-│       │   ├── Arkos1Converter.php       # .aks v1: AKSToYM.exe → YM → ZxTuneConverter → MP3
-│       │   ├── Arkos2Converter.php       # .aks v2: SongToWav.exe → WAV → FfmpegConverter → MP3
-│       │   ├── ParsedInformation.php     # DTO: title, author, formatVersion, frequency, trackerVersion
-│       │   ├── Version.php               # Enum: VERSION1 | VERSION2
-│       │   └── VersionResolver.php       # Delegates to AksInformationParser to detect Arkos version
-│       ├── ChipNSfx/
-│       │   └── ChipNSfxConverter.php     # .chp: CHIPNSFX.EXE -w → WAV → FfmpegConverter → MP3
-│       ├── Converter/
-│       │   ├── Converter.php             # Orchestrator: resolve type → get converter → convert → move → cleanup
-│       │   ├── ConverterInterface.php    # convert(ConversionConfig): ConversionResult[]
-│       │   ├── ConverterType.php         # Enum: ZXTUNE | ARKOS1 | ARKOS2 | FURNACE | CHIPNSFX
-│       │   └── ConverterTypeResolver.php # Maps file extension to ConverterType; detects Arkos version for .aks
-│       ├── FfmpegConverter/
-│       │   └── FfmpegConverter.php       # WAV → MP3 via ffmpeg (320 kbps stereo, shared by Arkos2/Furnace/ChipNSfx)
-│       ├── Furnace/
-│       │   └── FurnaceConverter.php      # .fur: furnace.exe -output → WAV → FfmpegConverter → MP3
-│       └── ZxTune/
-│           └── ZxTuneConverter.php       # Default: zxtune123.exe with AY chip params → MP3; parses multi-subtune output
-├── binaries/
-│   ├── arkos1/Tools/AKSToYM.exe
-│   ├── arkos2/tools/SongToWav.exe
-│   ├── chipnsfx/CHIPNSFX.EXE
-│   ├── ffmpeg/bin/ffmpeg.exe
-│   ├── furnace/furnace.exe
-│   └── zxtune/zxtune123.exe
-├── uploads/                    # Uploaded originals (kept, organized by ID)
-├── result/                     # Temporary conversion intermediates (cleaned up per request)
+├── music/                      # DocumentRoot (public web root on hosting and in Docker)
+│   ├── index.php               # Entry point: loads music_back/vendor/autoload.php, bootstraps DI, dispatches to MusicController
+│   ├── music/                  # Final MP3 output (publicly accessible)
+│   └── test.html               # Manual test page
+├── music_back/                 # Backend: not web-accessible
+│   ├── src/
+│   │   ├── Config/
+│   │   │   └── ContainerSetup.php  # PHP-DI container wiring (all bindings)
+│   │   ├── Controller/
+│   │   │   └── MusicController.php # HTTP layer: validates upload, builds ConversionConfig, calls Converter
+│   │   ├── Dto/
+│   │   │   ├── ApiResponse.php     # JSON envelope: {success, data, error}
+│   │   │   ├── ConversionConfig.php# Input for converters: paths, chip params (frequency, chipType, channels, frameDuration)
+│   │   │   ├── ConversionResult.php# Output of converters: mp3Name, title, author, time, channels, type, container, program
+│   │   │   └── PathConfig.php      # Configured root paths: uploadPath, resultPath, musicPath
+│   │   ├── Factory/
+│   │   │   └── ConverterFactory.php# Resolves ConverterInterface by ConverterType enum via DI container
+│   │   ├── Response/
+│   │   │   └── ResponseHandler.php # Sends gzip-encoded JSON HTTP response
+│   │   └── Service/
+│   │       ├── Directories.php     # Utility: creates directories recursively
+│   │       ├── Arkos/
+│   │       │   ├── AksInformationParser.php  # Extracts XML from .aks (ZIP or GZIP), parses title/author/version/frequency
+│   │       │   ├── Arkos1Converter.php       # .aks v1: AKSToYM.exe → YM → ZxTuneConverter → MP3
+│   │       │   ├── Arkos2Converter.php       # .aks v2: SongToWav.exe → WAV → FfmpegConverter → MP3
+│   │       │   ├── ParsedInformation.php     # DTO: title, author, formatVersion, frequency, trackerVersion
+│   │       │   ├── Version.php               # Enum: VERSION1 | VERSION2
+│   │       │   └── VersionResolver.php       # Delegates to AksInformationParser to detect Arkos version
+│   │       ├── ChipNSfx/
+│   │       │   └── ChipNSfxConverter.php     # .chp: CHIPNSFX.EXE -w → WAV → FfmpegConverter → MP3
+│   │       ├── Converter/
+│   │       │   ├── Converter.php             # Orchestrator: resolve type → get converter → convert → move → cleanup
+│   │       │   ├── ConverterInterface.php    # convert(ConversionConfig): ConversionResult[]
+│   │       │   ├── ConverterType.php         # Enum: ZXTUNE | ARKOS1 | ARKOS2 | FURNACE | CHIPNSFX
+│   │       │   └── ConverterTypeResolver.php # Maps file extension to ConverterType; detects Arkos version for .aks
+│   │       ├── FfmpegConverter/
+│   │       │   └── FfmpegConverter.php       # WAV → MP3 via ffmpeg (320 kbps stereo, shared by Arkos2/Furnace/ChipNSfx)
+│   │       ├── Furnace/
+│   │       │   └── FurnaceConverter.php      # .fur: furnace.exe -output → WAV → FfmpegConverter → MP3
+│   │       └── ZxTune/
+│   │           └── ZxTuneConverter.php       # Default: zxtune123.exe with AY chip params → MP3; parses multi-subtune output
+│   ├── binaries/
+│   │   ├── arkos1/Tools/AKSToYM.exe
+│   │   ├── arkos2/tools/SongToWav.exe
+│   │   ├── chipnsfx/CHIPNSFX.EXE
+│   │   ├── ffmpeg/bin/ffmpeg.exe
+│   │   ├── furnace/furnace.exe
+│   │   └── zxtune/zxtune123.exe (Linux build for Docker; .exe for Windows dev)
+│   ├── uploads/                # Uploaded originals (kept, organized by ID)
+│   ├── result/                 # Temporary conversion intermediates (cleaned up per request)
+│   ├── vendor/                 # Composer dependencies (install locally: composer install)
+│   └── composer.json
+├── docker/
+│   ├── apache.conf             # DocumentRoot → /var/www/html/music
+│   ├── php.ini
+│   └── xdebug.ini
+├── docker-compose.yml          # Mounts repo root as /var/www/html; no rebuild needed for PHP changes
+├── Dockerfile
 ├── docs/
 │   ├── domain.md               # Domain knowledge: formats, pipelines, chip params, runtime dirs
 │   ├── php.md                  # PHP coding standards
 │   └── testing.md              # Testing rules
-├── composer.json
 └── AGENTS.md
 ```
 

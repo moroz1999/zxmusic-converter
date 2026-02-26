@@ -2,7 +2,15 @@
   "permissions": {
     "allow": [
       "Bash(dir E:\\\\projects\\\\zxmusic-converter:*)",
-      "Bash(claude mcp:*)"
+      "Bash(claude mcp:*)",
+      "Bash(cd:*)",
+      "Bash(docker exec:*)",
+      "Bash(tail:*)",
+      "Bash(cd /e/projects/zxmusic-converter && composer require monolog/monolog:^3.0 2>&1)",
+      "Bash(cd /e/projects/zxmusic-converter && php composer.phar require monolog/monolog:^3.0 2>&1 || /c/ProgramData/ComposerSetup/bin/composer require monolog/monolog:^3.0 2>&1)",
+      "mcp__jetbrains__list_directory_tree",
+      "Bash(docker ps:*)",
+      "Bash(cd \"E:/projects/zxmusic-converter\" && docker-compose up -d --build 2>&1)"
     ]
   }
 }

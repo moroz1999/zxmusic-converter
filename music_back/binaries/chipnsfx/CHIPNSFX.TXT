@@ -1,0 +1,860 @@
+# CHIPNSFX -- http://cngsoft.no-ip.org/chipnsfx.htm #
+
+	  CCCC  HH  HH IIIIII PPPPPP  NN   NN  SSSSS  FFFFFFF XX   XX
+	 CC  CC HH  HH   II    PP  PP NNN  NN SS   SS  FF   F  XX XX
+	CC      HH  HH   II    PP  PP NNNN NN SS       FF F     XXX
+	CC      HHHHHH   II    PPPPP  NN NNNN  SSSSS   FFFF     XXX
+	CC      HH  HH   II    PP     NN  NNN      SS  FF F    XX XX
+	 CC  CC HH  HH   II    PP     NN   NN SS   SS  FF     XX   XX
+	  CCCC  HH  HH IIIIII PPPP    NN   NN  SSSSS  FFFF    XX   XX
+
+	CHIPNSFX, cross-platform lightweight music tracker and player
+		developed by Cesar Nicolas-Gonzalez / CNGSOFT
+		website http://cngsoft.no-ip.org/chipnsfx.htm
+
+## Foreword ##
+
+CHIPNSFX is a software suite whose purpose is to let the user write music to be
+played by three-channel, white-noise sound generators such as the AY-3-8910 and
+YM2149 chips. These chips spans several 1980s 8-bit platforms platforms: Amstrad
+CPC, Sinclair Spectrum 128, MSX1, etc.
+
+The suite is divided in two halves: on one hand, the "tracker", by default a
+Win32 console application named CHIPNSFX.EXE, that handles both the writing of
+the music and the generation of binary data to be used by the player; on the
+other hand, the "player", a Z80 library source file named CHIPNSFX.I80, to be
+used by games and demos requiring a tiny code size (between 600 and 900 bytes)
+while still allowing for sound effects such as amplitude and noise envelopes and
+effects, chord arpeggios and note vibratos.
+
+The suite also includes several songs written with the tracker and a simple
+jukebox for Amstrad CPC and Spectrum as an example of how to use the player.
+Other platforms with similar sound hardware such as Commodore 64, Sega Master
+System or Atari ST can be supported as well, all they need is a translation of
+the player code for their architecture.
+
+Software and documentation are provided "as is" with no warranty. The CHIPNSFX
+tracker (source code, binary and documentation) follows the GNU General Public
+License v3, as seen in the file GPL.TXT within the package. The CHIPNSFX player
+(Z80 assembler source code) follows the Lesser GNU General Public License v3, as
+seen in LGPL.TXT.
+
+## Requirements and setup ##
+
+The tracker's built-in binary requires Windows 2000 or later to work. The
+tracker will try using a sound card to play songs unless told not to. The text
+mode must be set to 80x25 characters or higher. WINE users intending to use this
+binary must launch the tracker with `wineconsole` rather than `wine`.
+
+Compiling the tracker can be done in two ways. The first one generates a typical
+Win32 executable file with the following command line for GCC (or compatible):
+
+	gcc -O2 -xc chipnsfx.c -lwinmm -ochipnsfx.exe
+
+The second way generates a platform-independent binary that requires the SDL2
+library [http://www.libsdl.org/] from version 2.0.4 onwards:
+
+	gcc -DSDL2 -O2 -xc chipnsfx.c -lSDL2 -ochipnsfx
+
+If the sound buffer is too short and the sound becomes choppy, try compiling the
+tracker again with the additional compile time parameter `-DSDL2_DOUBLE_QUEUE`.
+
+The player requires the assembler UZ80 [http://cngsoft.no-ip.org/uz80.htm] ; few
+changes (if any) are required to compile it with other assemblers such as MAXAM
+and RASM and thus are left as an exercise to the user.
+
+## Using the tracker ##
+
+The tracker can run in two modes: data generator and tracker proper. The first
+mode is limited to translating a song into raw data for the player: it's thus to
+be used within batch processing, Makefile scripts and other command line
+activities. By default, it simply takes two command line parameters, the first
+one being the source song CHP file, the second one being the target INCLUDE
+file. Several command line options let the user fine-tune its behavior:
+
+* -l STRING: sets the prefix of the data within the INCLUDE file. For example,
+"-l xyz_" means that the three channels are labelled "xyz_a", "xyz_b" and
+"xyz_c" respectively.
+* -L: generates a song header within the INCLUDE file, resulting in a fully
+self-contained song data file.
+* -c N: sets the INCLUDE file maximum width in characters (default 80) just in
+case the assembler cannot accept overly long lines.
+* -b: generate song with short calls. By default, songs are generated with long
+calls to patterns used more than once. If a song is small enough, short calls
+can save space; but songs too big for short calls will cause overflow errors
+when assembling their INCLUDE files.
+* -B1, -B2, -B3: like -b, but for just one channel (A, B or C), if one or two
+channels are short enough to benefit from -b but the others are too long for -b
+to work correctly.
+* -B4, -B5, -B6: special cases of -B1, -B2 and -B3 that use long calls to
+patterns used by more than a channel, but short ones to those used by the
+current channel only.
+* -B7, -B8, -B9: change the order of channels within the INCLUDE file, to
+further help compression when two channels share pattern calls, as these shared
+patterns will stored last in the file: B7 puts channel A last, B8 does it to
+channel B and B9 to channel C. Adding a "-" swaps the order of the first
+channels: -B7 stands for BCA and -B7- for CBA.
+* -R: forbids loops. Loops are used to compress the song when strings of
+identical notes are detected, but they make data generation slower and also make
+playback slightly slower.
+* -r: look for loops in reverse. By default, compression aims to detect loops
+inside patterns first and outside them next. However, lengthy songs with often
+repeating few different patterns (such as MEGANOVB.CHP, H_A_T_E_.CHP and
+YOGIBEAR.CHP) are better packed by reversing the loop search order, as
+compression isn't recursive and packed patterns cannot belong to a compressed
+order list section.
+* -t: abridge output timings when feasible. Instead of storing the tempo as a
+separate flag, note lengths will be multiplied by its value. It won't be
+performed on songs with overly long patterns.
+* -T: abridge output timings, and abort when unfeasible.
+* -a: append to target rather than create a new file.
+* -w: export full song into a WAVE file target.
+* -W: export song loop into a WAVE file target.
+* -y: export full song into a YM3B file target.
+* -Y: export song loop into a YM3B file target.
+* -n N: set how many times the song must loop when exported.
+* -N N: set playback transposition; it can be positive or negative.
+* -Q: enable oversampling in WAVE file targets: -QQ, -QQQ, -QQQQ... increase
+oversampling. The tracker always assumes -Q.
+* -Z: rectangle wave mode. By default, waves are square, but users may find the
+rectangle wave sound smoother and more palatable.
+* -!: compatible audio mode. This option extends the buffer length (at the cost
+of higher latency); use it if the sound becomes choppy.
+
+The second mode enables the tracker proper and is run with either no command
+line parameters or with only one, the song CHP file. It allows the previously
+seen options -F and -Q plus the following ones:
+
+* -m: mute mode, don't use the sound card at all.
+* -p: start playing the song after loading it.
+* -P: cursor follows playback.
+* -k1: set QWERTZ key map. By default, the tracker assumes a QWERTY keyboard.
+* -k2: set AZERTY key map.
+* -U: enable manual undo/redo behavior. By default, ^Z and ^Y swap the current
+and previous contents of the song, effectively making undo and redo behave the
+same. This flag makes them behave in a more standard fashion, whereby ^Z doesn't
+redo and ^Y doesn't undo.
+
+The tracker proper is similar to other musical editors. The general idea is to
+define the songs as fragments (the "patterns") arranged on an ordered list (the
+"orders") and type the notes on these fragments as instances of sound wave
+styles (the "instruments").
+
+The screen layout is divided in five panels: a narrow header (song title and
+description), a body divided in three columns (current pattern, instruments,
+order list) and a narrow footer (song parameters and runtime information).
+
+Navigation is to be done with the keyboard, either with Control-Tab to switch to
+the next panel (Control-Shift-Tab switch to the past panel) or with single
+keypresses: F2 enables the pattern panel, F3 enables the instrument panel, F4
+enables the order list panel and F9 enables the parameter panel.
+
+The arrow keys ("cursors") let the user move within a single panel. In the
+panels where area selection is possible, Shift-Cursor lets the user define the
+span of the currently selected area. Tab, Shift-Tab, Home, End, Page Up and Page
+Down allow for faster motion.
+
+The currently loaded song can be played by pressing F5 (whole song from the
+beginning, or from the looping point with Control-F5), F6 (current pattern only)
+and F7 (whole song from the current location). F8 stops the playback. Notice
+that the song cannot be edited during playback after setting the cursor to
+follow the playback.
+
+F1 shows a simple help screen with the keyboard shortcut list:
+
+* Numberpad + goes to the next order in the order list.
+* Numberpad - goes to the past order.
+* Numberpad * or Control-Right select the next octave.
+* Numberpad / or Control-Left select the past octave.
+* > or Control-Down select the next instrument.
+* < or Control-Up select the past instrument.
+* SPACE either assigns the currently active instrument to any selected notes (if
+the pattern panel is active), plays a note with the current instrument
+(instrument panel) or assigns the active instrument to any selected patterns
+(order list).
+* ENTER either selects the instrument used by the note below the cursor (pattern
+panel) or plays a noise-only version of the current instrument (instrument
+panel).
+* The letters and numbers in the keyboard either write notes on the pattern
+(pattern panel), modify the name and the values of the instrument (instrument
+panel) or modify the pattern indices in the order list (order list panel). As in
+other trackers, notes are set on the keyboard as if it were a piano: thus
+ZXCVBNMQ would play all the eight major notes of the currently active octave.
+* Control-F1 enables all playback channels at once; Control-F2 toggles channel
+A, Control-F3 toggles channel B and Control-F4 toggles channel C. Pressing
+Control-Shift rather than just Control makes the channel play solo.
+* Control-Q and Control-A raise and lower the currently selected notes (pattern
+panel), all the song notes played with the current instrument (instrument
+panel), the selected patterns (order list panel) or the whole song (parameter
+panel) by a semitone. Control-Shift rather than just Control raises or lowers
+notes and patterns by a whole octave.
+* Control-T and Control-G shift the active notes, instrument or orders up and
+down within their lists. Use them to fix mistakes while writing the notes, to
+rearrange the instruments or the pattern order, etc. Control-Shift rather than
+just Control sends the items to the top or the bottom or their lists.
+* Control-D detects whether the current instrument is used within the song
+(instrument panel) or whether the current patterns are duplicates of previous
+ones (pattern and order list panels). Control-Shift rather than just Control
+erases the current instrument (if unused) or turns the current patterns into
+links to previous ones (if duplicated).
+* Control-E is the opposite operation of Control-D and checks whether the
+current patterns are links to previous ones. Control-Shift rather than just
+Control turns links into duplicates of their patterns; when used on an
+instrument, it appends a duplicate to the instrument list if said instrument is
+used within the song.
+* Control-W applies the current patterns' transposition to their notes and sets
+the transposition value to zero: links to these patterns are carefully adjusted
+in the order list to ensure consistency. When used on the parameter panel, the
+global transposition is applied to the whole song.
+* Control-U scans the active panel's contents (patterns, instruments, orders)
+for duplicates. Control-Shift rather than just Control automatically turns all
+duplicate patterns into links to a single pattern, removes all unused
+instruments and numerically sorts all the orders, depending on the active panel.
+* Control-K sets the end of the current pattern, the last instrument or the last
+pattern in the song at the current panel cursor's position. By default all
+patterns grow to accomodate notes as the user types them, so this can be used to
+trim patterns that grew longer than they should. It's also to be used to amend
+inconsistences when rearranging patterns within the order list window:
+inconsistent pattern lengths are tagged with "!!" in the order list, and using
+this shortcut in the desired location in the pattern panel will solve said
+inconsistency. Data outside the boundaries set by Control-K isn't saved, so use
+it to get rid of unused instruments and patterns. Bear in mind that patterns can
+be up to 128 notes long, there can be up to 255 different instruments and songs
+can be up to 256 patterns long.
+* Control-L sets the looping point in the song, or resets it if pressed again. A
+song that plays its last pattern can either loop to the pattern pointed by
+Control-L (tagged in the order list with "**") or stop if no looping point was
+set.
+* Control-Z and Control-Y undo and redo the last change in the song.
+* Control-X, Control-C and Control-V cut, copy and paste respectively areas
+previously selected by the user. Control-B pastes data too, but also moves to
+the end of the pasted area, effectively allowing for repeated appending of
+pasted data.
+* Control-N erases the currently loaded song from memory; it will ask the user
+for confirmation ("Are you sure? [Y/N]"), who will push ENTER or Y to accept or
+ESCAPE or N to cancel.
+* Control-O loads a song from disc. It may ask for confirmation if the current
+song was edited but not saved yet. A simple user interface will let the user
+look for the song to be loaded: ENTER accepts the song file under the cursor and
+ESCAPE cancels the loading.
+* Control-R reloads the current song from disc. Confirmation will be requested
+if any edits have been done.
+* Control-S saves the song to disc. The user interface lets the user select the
+song (by default, the last one saved or loaded) or enter a new filename by
+choosing the last entry in the list, "<new file>".
+* Control-P toggles the -P command line option on runtime.
+* Control-F toggles the -Z command line option on runtime.
+* Control-J (SDL2 only) sets the text style to normal, bold, italic or thin.
+* ESCAPE quits the tracker. It requests confirmation, especially if the song was
+modified but not saved.
+
+The pattern panel allows for certain special notes to be written. By default,
+assuming a QWERTY keyboard:
+
+* "." clears the current note.
+* "1" inserts a rest or silence, shown as "^^^".
+* "A" inserts a "brake" that switches the current amplitude envelope on and off,
+shown as "===".
+* "L" inserts a noise-only note, shown as "C-9".
+
+The instrument panel defines data with eleven hexadecimal fields:
+
+* The first two digits are the starting amplitude: FF is the maximum level, 01
+is the minimum level that still plays a note. 00 disables the note altogether.
+* The next two digits are the amplitude envelope: 00 keeps the amplitude
+constant, the range 01 to 5F makes the amplitude rise as time goes on (01:
+slowly; 5F: quickly), the range 60 to 7F makes the amplitude drop or rise once
+(60: weak rise; 6F: strong rise; 70: strong drop; 7F: weak drop), the range 80
+to 9F sets a simple tremolo effect, i.e. amplitude drops and rises in a loop
+(80: weak rise+drop; 8F: strong rise+drop; 90: strong drop+rise; 9F: weak
+drop+rise) and the range A0 to FF makes the amplitude drop as time goes on (A0:
+quickly; FF: slowly).
+* The following two digits are the starting noise value: 00 means no noise, 01
+means high-pitched noise, and FF means low-pitched noise.
+* Similarly, these two digits are followed by two more digits that define the
+noise envelope: 00 keeps the noise constant, the range 01 to 7E makes its pitch
+drop as time goes on (01 very slowly, 7E very quickly), and the range 81 to FF
+makes it rise as time goes on (80 quickly, FF slowly). Special case 7F makes the
+noise wave toggle in a crunch-like sound; special case 80 makes the noise stop
+right after the beginning of each note.
+* The last three digits set the sound effect. The first out of these three can
+be either 0 (arpeggio) or 1 (vibrato/glissando), while the last two digits set
+the sound effect parameter XY:
+	+ The arpeggio's X and Y set the distances in semitones between the
+first and second notes and the second and third notes, respectively; for
+example, XY=47 stands for the C major triad. When Y is 0 the arpeggio is 2-step
+rather than 3-step: XY=C0 stands for 0 +12 0 +12 0 +12... Values D, E and F are
+special cases that stand for +24, -24 and -12, and E and F also lock the
+arpeggio if used as Y; for example, XY=0F stands for the arpeggio 0 0 -12 -12
+-12 -12... while XY=FC stands for 0 -12 +12 0 -12 +12...
+	+ The vibrato's X sets its speed (1 fast, F slow) while Y sets its
+depth, either positive (1 weak, 7 strong) or negative (9 weak, F strong). When X
+is 0 the effect is a fast glissando (speed is 1) whose depth is set by Y. When X
+is nonzero and Y is either 0 or 8 the effect is a slow glissando (0 positive, 8
+negative) whose speed is set by X. Notice that XY=01 and XY=10 are equivalent,
+and so are XY=09 and XY=18. The special case XY=08 plays the current note with a
+slightly lower frequency; this can perform a flanging effect if an identical
+note plays on another channel.
+
+Instrument 00 (shown as ":.." in the pattern) is special because it sets a
+simple portamento onto the notes it's used with: for example, "C-4:01 ...:..
+D-4:.." starts a new note (C4) with instrument #01, then raises its frequency to
+D4 without resetting the wave style two lines later. Convergence between notes
+in a portamento is achieved by halving the distance between the past note and
+the next note on each clock tick.
+
+Indices in the order list panel are hexadecimal numbers.
+
+Values in the parameter panel can be modified by choosing the element (clock
+base, clock divider and transposition) with the horizontal cursors and raising
+or lowering its value with the vertical cursors; Page Up and Down changes these
+values more quickly.
+
+The song title can be edited with F11, and the description with F12.
+
+## Using the player ##
+
+The player is hardware-independent: it modifies the Z80 registers AF, BC, DE, HL
+and IX, but it's otherwise interruption and stack safe, as it doesn't modify
+AF', BC', DE' or HL', or the interrupt status.
+
+The player expects the user to provide some information. First of all,
+"chipnsfx" is the location of the player itself. It's required if the code needs
+to relocate itself before the player starts running. When no relocation is
+needed, the user only has to put the label "chipnsfx" right before the player
+code.
+
+"writepsg" is a function that begins with PUSH BC, writes the value of register
+A onto the sound chip register set by C, then ends with POP BC and RET. It can
+modify the flags, but it must restore all the registers it may modify.
+
+The Spectrum "writepsg" code would look like this:
+
+	writepsg: ; A=VALUE,C=INDEX; -
+		PUSH BC
+		PUSH AF
+		LD A,C
+		LD BC,$FFFD
+		OUT (C),A
+		POP AF
+		LD B,$BF
+		OUT (C),A
+		POP BC
+		RET
+
+While on MSX it would look like this:
+
+	writepsg: ; A=VALUE,C=INDEX; -
+		PUSH BC
+		LD B,A
+		LD A,C
+		OUT ($A0),A
+		LD A,B
+		OUT ($A1),A
+		POP BC
+		RET
+
+And the Amstrad CPC code would be as follows:
+
+	writepsg: ; A=VALUE,C=INDEX; -
+		PUSH BC
+		LD B,$F4
+		OUT (C),C
+		LD BC,$F6C0
+		OUT (C),C
+		DW $71ED ; *OUT (C),0
+		LD B,$F4
+		OUT (C),A
+		LD BC,$F680
+		OUT (C),C
+		DW $71ED ; *OUT (C),0
+		POP BC
+		RET
+
+"chipnsfx_bss" points to a buffer; its required size in bytes is the constant
+CHIPNSFX_TOTAL, whose value depends on the compile time flag.
+
+Finally, "CHIPNSFX_FLAG" is the compile time flag, a number whose bits set the
+options of the player itself:
+
+* +1 : notes from Spectrum and MSX1 rather than Amstrad CPC. Each machine uses a
+different timer for the sound chip, and thus the note tables must be different
+to ensure that A-4 is 440 Hz.
+* +2 : dual mode: each channel is divided in two (music and SFX) and if the SFX
+half is active the music half stays active but quiet, thus allowing for sound
+effects to temporarily override the background music. The downside is that the
+player is doing the work of six channels rather than three, thus requiring twice
+as much buffer memory and CPU time.
+* +4 : song-only mode: disables all sound effect logic (effectively storing only
+the code used by music) and makes the player lighter.
+* +8 : no noise: disables all noise handling. Like +4, the player becomes
+smaller because it has fewer functions.
+* +16 : no slides: disables portamentos and glissandos. Again, the player
+footprint shrinks down.
+* +32 : unlooped: disables loop handling. Player becomes smaller but songs must
+be generated with the -R command line option.
+* +64 : tempoless: removes tempo logic. Timings are reduced to note lengths,
+player is smaller, songs require the -T option.
+* +128 : precalculated octaves: the player becomes faster as notes are no longer
+calculated on the fly, but grows heavier.
+* +256 : prebuilt chipnsfx_bss table: the user no longer has to provide the
+chipnsfx_bss buffer, and the player is limited to playing just one song
+non-stop; useful for intros and other single-song softwares.
+* +512 : read-only mode: the player exclusively uses the chipnsfx_bss buffer
+instead of relying on several self-modifying operations.
+
+The player provides four functions. The first function, "chip_stop" resets the
+sound chip and all the playback parameters. The user must use it at least once
+before playing anything at all, and whenever he may need to stop the playback.
+Registers AF, BC, DE and HL are modified by this function.
+
+"chip_song" sets all playback channels to point at the beginning of a song. HL
+points at the song header, whose format is as follows:
+
+	song_header:
+		DEFW channel_a-$-2
+		DEFW channel_b-$-2
+		DEFW channel_c-$-2
+
+If the player was compiled with the dual mode on, the Carry flag sets whether
+the new song is background music (NC) or a sound effect (C). AF, BC, DE and HL
+are modified.
+
+"chip_chan" sets a channel to point at the beginning of a track. DE points at
+the track offset and A stands for the channel, ranging from 0 (channel A SFX) to
+5 (channel C music) if dual mode is on, or from 0 (channel A) to 2 (channel C)
+if it's off. Registers AF, BC and HL are modified.
+
+The last function, "chip_play" plays one clock tick of the current playback. It
+updates the playback channels and the sound hardware accordingly. A 100 Hz song
+requires this function to be called 100 times every second, a 50 Hz song
+requires it to be called 50 times, and so on. Registers AF, BC, DE, HL and IX
+are modified.
+
+The player isn't reentrant, so it's important to keep "chip_play" from being
+called whenever other functions from the player are active. For example, if
+"chip_play" is interrupt-driven a solution is to perform a DI before a call to
+"chip_stop", "chip_song" or "chip_play" and an EI after said call; another
+possible solution would be to perform these calls within the interruption
+handler.
+
+The playback parameters can be examined by the user on runtime. For example, the
+user may need to know whether channels A and B are busy:
+
+		LD IX,chipnsfx_bss
+		LD A,(IX+CHIPNSFX_POS_L)
+		OR (IX+CHIPNSFX_POS_H)
+		JR NZ,channel_a_is_busy
+		; channel A is not busy
+		LD IX,chipnsfx_bss+CHIPNSFX_BYTES
+		LD A,(IX+CHIPNSFX_POS_L)
+		OR (IX+CHIPNSFX_POS_H)
+		JR NZ,channel_b_is_busy
+		; neither channel A or B are busy
+
+CHIPNSFX.DSK is a very simple demo (a jukebox) for Amstrad CPC of the player in
+action. The time spent by the player is shown as as a white stripe on a black
+border. Press SPACE to stop the current song and play the next one. CHIPNSFX.TZX
+is the Spectrum version. The source code of the jukebox is the file
+CHIPNSFX.S80.
+
+## Version history ##
+
+- 20170513 -- first public release.
+- 20170523 -- second public release. New command line options -F (48000 Hz) and
+-L (linear amplitude). A blue bar makes the active items stand out. Minor
+changes in the documentation file.
+- 20170602 -- third public release. New command line options -P (cursor follows
+playback), -k1, -k2 and -k STR (set QWERTZ, AZERTY or custom keyboard map),
+following a suggestion from Beb.
+- 20170607 -- fourth public release. New command Control-D tells whether the
+current instrument is unused or the current pattern is a duplicate (Shift: erase
+unused instrument, turn current pattern into a link to the pattern it is a
+duplicate of). Minor bugfixes: inconsistencies in -P mode and in channel
+toggling, better compression when generating INCLUDE files, etc. Minor changes
+in several songs. New DESPERA1.CHP.
+- 20170616 -- fifth public release. Fixed a file dialog bug reported by Garvalf
+(who also wrote CHIPNSFX's first new song from scratch), as well as minor
+internal consistency bugs. Pattern panel allows using Control-D. New
+ATOMINO3.CHP and DESPERA2.CHP.
+- 20170707 -- sixth public release. New command line options -y and -Y (generate
+YM3B file, either full song or song loop), commands Control-W (apply
+transposition to current pattern), Control-D (detect duplicates and optionally
+erase them), Control-E (check for duplicates and optionally create them). Minor
+changes in CHIPNSFX.I80 extended mode vibratos, in the file dialog and the
+INCLUDE file compression. New DEFLEKTR.CHP, GRANGEHL.CHP, PHANTIS1.CHP,
+PHANTIS2.CHP, THINGBBK.CHP and TIMETRAX.CHP.
+- 20170719 -- seventh public release. New extended tremolos (60-9F) lead to
+several changes in the amplitude effect byte: old 60-6F become 5F, old 80
+becomes 9E, old 81-8F become 61-6F, old 90-9F become A0; 70-7F stay the same.
+New command line options -b1, -b2 and -b3. Minor tweaks in CHIPNSFX.I80. New
+CATABALL.CHP, FREDDY_H.CHP, HYDROFOL.CHP and SCOR3020.CHP.
+- 20170724 -- eighth public release. Fixed a serious bug in the noise generator:
+playback and WAVE output randomly skipped pure noise notes. New ATEAM.CHP,
+BURNINR1.CHP, BURNINR4.CHP, SOLOMON2.CHP, UNDERWTR.CHP, WESTBNK1.CHP,
+WESTBNK2.CHP and WINGSOD4.CHP: 32 sample songs.
+- 20170731 -- ninth public release. New special case for arpeggios: the nibble F
+stands for -12 and changes the loop behavior. Sound playback is now
+wavelength-based rather than frequency-based, and thus closer to the hardware.
+Minor bugfixes in the keyboard map handling. New CHUBBYGR.CHP, CHUBBYGS.CHP,
+MEGAPHNX.CHP and MEGAPHNY.CHP.
+- 20170813 -- tenth public release. New command line options -a (append) and -Q
+(enable oversampling). Fixed two bugs in INCLUDE file output: instruments
+setting secondary parameters at the end of the song didn't reset them after
+looping back to the beginning, and song loop could be lost if within a
+compressed string. The arpeggios' special case F is now universal instead of
+limited to extended mode. New BURNINR2-3.CHP, ARMYMOV1-2.CHP, METROPLS.CHP,
+MYHERO_1-5.CHP, NAVYMOVS.CHP, RENEGA10-19.CHP, THUNDRBD.CHP and XENON1-3.CHP: 65
+songs.
+- 20170814 -- minor patch extending Control-A/Q to the instrument panel.
+- 20170909 -- eleventh public release. New special case for instrument noise:
+XX80 plays noise XX only at the beginning of the note, then disables the noise
+signal; the player's extended mode has been updated as well. New command line
+options -b4, -b5 and -b6. Moved Control-P to Control-B and added Control-U (song
+optimisation and cleanup). New CAULDRN2.CHP, EQUINOX.CHP, HATE.CHP,
+LASTMISN.CHP, MOT1-3.CHP, RESCATLA.CHP, RTS-25-27HZ.CHP, RTS-50-52HZ.CHP,
+SHADSKIM.CHP, TRAILBLZ.CHP, WELLSNFG.CHP, WINGSOD5.CHP and ZONA0.CHP: 85 songs.
+- 20170911 -- minor patch fixing a bug in the extended player and adding
+VERMINT1-3.CHP.
+- 20170914 -- twelfth public release. Command line options allow "getopt"
+syntax: for example, "-a -b -c" can be shortened to "-abc"; flags -b1 to -b6 are
+now -B1 to -B6, in uppercase. Improved the player's support of multiple channels
+playing noise at once, thus solving the glitches in BURNINR1.CHP and other
+songs. Added INDIANA3.CHP and JACKNIP2.CHP.
+- 20170916 -- minor patch extending the behavior of Control-Shift-U to cleaning
+order transpositions up, fixing an old bug in the INCLUDE output and a new one
+in the extended player, and adding SHOCKWYR.CHP.
+- 20170918 -- minor patch fixing a bug in Control-Shift-U when dealing with
+extreme positive or negative order transposition values, and adding
+BLKLMPST.CHP, BLKLMPSU.CHP and TRANSMUT.CHP.
+- 20170930 -- thirteenth public release. Pushing SPACE in the instrument panel
+plays A-n (where n is the current octave) rather than A-4. New vibrato special
+case: values X8-XF generate a negative depth vibrato. Control-A/Q works on
+parameter panel. Added BLKLMP64-65.CHP.
+- 20171002-- : minor patch restoring proportional vibrato adjustment,
+overwritten by the new signed vibrato featured in the past release.
+- 20171104 -- fourteenth public release. Consistency fixes: arpeggio cases E + F
+stand for -13 + -12 both in the tracker and the player; Alt+F4 equates to
+ESCAPE; pushing INSERT or DELETE on the order list only affects the currently
+selected channels rather than all at once. Added BLKLMPSV.CHP, MYTHOS.CHP and
+ULISES.CHP.
+- 20171109 -- minor patch fixing a mistake in the order list (INSERT and DELETE
+were moving the end of the song when they weren't supposed to) and another one
+in the tracker's vibrato (internally limited to 7 steps rather than 15). Added
+GOODY.CHP and SIRWOOD.CHP.
+- 20171115 -- fifteenth public release. Fixed amplitude errors in normal (random
+crackles) and linear (heavy noise) modes. Added (in several cases retroactively)
+BLACKBRD.CHP, CAULDRN1.CHP, COLISEUM.CHP, KONGSTCK.CHP, LIVISTN1-2.CHP,
+M_U_L_E_.CHP, MADMIXG0-2.CHP, TOOBIN_1-5.CHP and UNTOUCH0-7.CHP.
+- 20171118 -- minor patch fixing minor noise in playback of almost mute
+amplitudes and formally setting arpeggio case E to stand for -24, way more
+useful than -13, and only requiring three bytes of code in the player. Added
+INSIDOUT.CHP and MEGAPHNW.CHP.
+- 20171124 -- sixteenth public release. Improved compression to handle repeated
+strings of patterns if their contents aren't already packed. Added arpeggio
+special case D (+24) with just one more byte of code. Added ABADIA1-3.CHP,
+CORSARI1-2.CHP, SOLOMON3.CHP and STARDUST.CHP.
+- 20171125 -- minor patch adding the command line parameter -R to scan and
+compress outside the patterns rather than both inside and outside. Fixed a crash
+on Windows 10. Added QUARTET4-5.CHP and YOGIBEAR.CHP.
+- 20171201 -- seventeenth public release. Extended -R to look for loops in
+reverse, compressing even further, and added -Z for rectangle waves instead of
+square. Fixed a player bug hurting noise-only note C-B with heavy arpeggios or
+transpositions. Added AVENGER.CHP, ELIMNTR0-2.CHP, HOTSHOT.CHP, PERICODG.CHP,
+SLAPFITE-F.CHP and SORCERY.CHP.
+- 20171203 -- minor patch that allows toggling the -P and -Z parameters during
+runtime with F9,Tab and F9,Shift-Tab, and which handles more correctly the order
+list length and looping points when inserting or deleting patterns in all the
+channels at once.
+- 20171205 -- eighteenth public release. Patterns no longer must begin with a
+note or a silence: internal opcode 128 handles unused space and is more
+efficient than using a portamento or a modified instrument to handle extremely
+long notes: compiling COSANOST.CHP went from 422 to 418 bytes, and BURNINR1.CHP
+from 766 to 728. Command line parameter -B7..B9[-] sets the order of channels in
+INCLUDE output. Fixed a bug that kept instruments from being played when typing
+notes on a score or testing them on the instrument panel. Added BLKLMP66.CHP.
+- 20171206 -- minor patch fixing a bug where instrument tests got stuck rather
+than being played only on a keypress. Added NEVERS-S.CHP.
+- 20171208 -- minor patch allowing longer title and description strings and
+accepting keys O, S and J as synonyms of Y on "yes/no" questions. Added
+BEYNDIP1-2.CHP, CRAFTON1-2.CHP, GONZALZ1-4.CHP, JUPITERP.CHP, MASK3.CHP,
+SEPULCRI.CHP, TETRIS1-2.CHP and ZUB1-7.CHP.
+- 20171214 -- nineteenth public release. When redundant, INCLUDE output skips
+SFX information on noise-only notes, resulting in shorter data. Parameter panel
+shows a dynamic volume meter during playback. Added FEUD1-2.CHP, MONTYRUN.CHP,
+ONEMANDR-S.CHP and SCUMBALL.CHP.
+- 20171215 -- minor patch fixing vibratos when the wavelength (1MHz) is between
+256 and 512 (several songs needed artificially heavy vibratos before the fix),
+and improving compression by detecting and avoiding false positives; added
+ARKANOID.CHP (it also plays within the demo), CHARDESI.CHP, MERMAID1-5.CHP and
+WECLMANS-T.CHP.
+- 20171223 -- twentieth public release. Added glissandos and inverted behavior
+of vibratos to provide consistency within all effects (high values are treble,
+low ones are bass). Inverted compile time flag +4 (ABRIDGED) on player (extended
+mode is enabled by default rather than disabled) and added flag +16 (SLIDELESS)
+to support all effects but portamentos and glissandos. Control-W in parameter
+panel applies the global portamento to every order in the list. Added
+FOTYEAR1-2.CHP, BOSCONIA.CHP, MAZEMANI.CHP, MUNSTERS.CHP and POWERPLY.CHP.
+- 20171228 -- minor patch with a new parameter -n N that sets how many loops
+must be exported to a WAVE or YM3B file. Added ARKANO-M.CHP, F_O_F_T_.CHP,
+GALAX_3D.CHP, GNG2-ALT.CHP and HEADHEEL.CHP.
+- 20180101 -- minor patch making the parameter panel more intuitive to navigate
+(Left/Right to choose element, Up/Down/Page Up/Page Down to set its value) and
+moving -P and -Z runtime toggling to Control-P and Control-F respectively, at
+least temporarily. Added ARKANOIE-H.CHP, GEOFFSC1-6.CHP, METROCRS.CHP,
+NEBULUS.CHP and ROBOCOP1.CHP. Rewritten the paragraph about "writepsg" and fixed
+the Spectrum 128 example (one POP AF too many). Extended parsing of parameter
+-B: "-B1 -B8- -B3" can be written as "-B18-3".
+- 20180111 -- 21st public release. Fixed the file dialog (it crashed if it had
+to show more than 256 entries). Control-F5 starts playback at the looping point.
+Slightly better compression when one pattern shows in a long string and nowhere
+else. Added ADDAMSF0-3.CHP, ARKANO-Z.CHP, CMDTRACR.CHP, DELTA-IN.CHP,
+DELTA-SL.CHP, DELTA-ZK.CHP, HOPRCOPR.CHP, HYPERBWL.CHP, ROCKNRLR.CHP,
+METROCRT-U.CHP and QUARTET6.CHP.
+- 20180113 -- minor patch further improving compression of single-note patterns
+and extending the logic of Control-D, Control-E and Control-W to entire
+selections rather than just the current pattern; Control-E can duplicate
+instruments, too. Fixed a bug in data output that wrote 120 rather than 128 as
+empty note. Added BOSCONIA.CHP, FOTYEAR1-2.CHP, GNG0-2.CHP, LAZRTAG1-2.CHP and
+LINEKER1-2.CHP.
+- 20180117 -- minor patch setting the instrument duplication shortcut to
+Control-Shift-E to match its pair Control-Shift-D and avoid accidents and adding
+Control-Page Up/Page Down to move through the order list. Added SABOTUR1-2.CHP
+and THUNCATS.CHP.
+- 20180123 -- minor patch featuring slightly finer wavelengths during note
+playback. Added HELTERSK.CHP, HISTEEL1-2.CHP, PREHIST0-3.CHP, RAMPAGE-F.CHP,
+SWTCHBLD-E.CHP, VIAJECEN.CHP and WHOPPERC.CHP.
+- 20180128 -- minor patch extending the new wavelengths to the player. Added
+DOORDOOM.CHP, DRAZEN64-5.CHP, MRHELI.CHP and POOGABOO.CHP.
+- 20180220 -- 22nd public release. Added command line parameter -U to enable
+manual undo/redo behavior (rather than the old automatic mode) and -t to abridge
+output timings when feasible; deep vibratos and glissandos (4/5/6/7) are deeper
+now (5/7/9/11). Added AMC0.CHP, AMC3.CHP, AMC4.CHP, BMXSIM1.CHP, BMXSIM2A.CHP,
+BMXSIM2B.CHP, BMXSIM2C.CHP, DALEYTOC.CHP, DRGNINJA.CHP, ELEKTRAG.CHP,
+ELIMNTR3.CHP, ESPADA.CHP, HATE-AST.CHP, KRAKOUT.CHP, KRAKOUU.CHP, LORNA.CHP,
+NINELIVE.CHP, NINELIVS.CHP, SAVAGE.CHP and SHRTCRCT.CHP.
+- 20180305 -- minor patch fixing a bug in the -t option that failed to handle
+several cases. Added COSTACP1-2.CHP, EXTRMNTR.CHP, JSW1-2.CHP, MANICMN1-2.CHP,
+MRWINO.CHP, NEMESTWL.CHP, PUZZNIC0-2.CHP, STARBOWL.CHP, TANGRAM1-2.CHP,
+TECHTED1-2.CHP and TITANIC.CHP.
+- 20180324 -- minor patch fixing a rare bug when instrument noise is XX80. Added
+CHICAG30.CHP, DARKFUSN.CHP, DTHWISH3.CHP, LEDSTORM-O.CHP, NORTHST1-2.CHP,
+PODEROSC.CHP, RASTRSCN.CHP, SAVAGF.CHP, SAVAGG.CHP, SLNTSHDW.CHP, TROLL1-3.CHP
+and TUAREG.CHP.
+- 20180326 -- minor patch removing redundant conditions in the player. Added
+PACMANI0-3.CHP, MUTANZO1-2.CHP, SOLNEGRO-P.CHP and SOLOMON4.CHP.
+- 20180408 -- 23rd public release. Completely rewritten INCLUDE output:
+BOSCONIA.CHP no longer generates corrupt data, overall compression is slightly
+better. Added BEACHBUG.CHP, BOSCONIB.CHP, DYNADAN1.CHP, IBALL2ST.CHP,
+NINJSCTR.CHP, POGOLYMP.CHP and TURBOGRL.CHP.
+- 20180414 -- minor patch with slight tracker speed and size optimisations:
+source is 96k, binary is 62.5k. Added CHIMERA1-2.CHP, CPC-1942-3.CHP and
+TNZS1-6.CHP.
+- 20180417 -- 24th public release. Ditched the last remainder of AS80
+compatibility: player code, song headers and calls expect "$" to stand for the
+current target address rather than the current line's target. The assembler UZ80
+has been modified accordingly. UPDATE: output uses colons rather than
+semicolons; using other assemblers than UZ80 doesn't require "sed -i s/;/:/g
+filename" any longer. Added ARKOID2A-E.CHP.
+- 20180426 -- minor patch fixing a bug when using the -T option and saving or
+reloading a song. Added CHAINRCT.CHP, MELTDOWN.CHP and WARHAWK.CHP.
+- 20180505 -- 25th public release. Changed vibrato and glissando scale from
+1,2,3,5,7,9,11 (gaps 1,1,2,2,2,2) to 1,2,3,5,7,11,15 (1,1,2,2,4,4): songs such
+as PACMANI1.CHP sound closer to their models. Inverted roles of -r and -R flags
+to match other options' behavior. Added DROIDS.CHP, GLIDERDR-S.CHP,
+GUNFRITE.CHP, HATTRICK.CHP, MEGAPOCL.CHP, MEGAPHNV.CHP, PINKPANT-PNTH.CHP and
+PROHIBIT.CHP, plus CHIPNSFX.TZX for Spectrum.
+- 20180510 -- minor patch fixing a bug storing useless instrument data on empty
+notes. Made tracker playback slightly softer to avoid noise in some computers.
+Added C64-180A-C.CHP, COMBASC1-5.CHP, DESPERA3.CHP and GUNFRITF-K.CHP.
+- 20180513 -- First anniversary of CHIPNSFX's original release! Tweaked the
+tracker playback again, merged MEGAPHNV+W.CHP and added AFTERWAR.CHP,
+AMC1-2.CHP, FMBASKT1-2.CHP, NONAMED.CHP and SPTENIS1-3.CHP: 365 sample songs in
+total, one for each day in the year! Bonus: tracker source!
+- 20180514 -- minor patch making several strings static to save space and fixing
+several inconsistencies between code and comments. The jukebox features an
+optimisation described by Targhan at memoryfull.net. Macros were moved outside
+CHIPNSFX.I80 to ease compatibility beyond UZ80.
+- 20180517 -- minor patch making the player two bytes shorter, and adding flag
++32 (UNLOOPED) to disable loop logic, matching the -R flag. Added AVENGER.CHP,
+BEACHBUG.CHP, BRNBLL-N.CHP, CAMPEONE.CHP, DUSTIN.CHP, ELEVATOR.CHP, GBASKET.CHP,
+GEOFFCS1-6.CHP, HAMMRBY1-4.CHP, HUNDRA.CHP, MASK1-2.CHP, PHOBOS-N.CHP,
+PSYPIGSU-W.CHP, STAINLES.CHP, TRAILBLY.CHP and ZONETROP-Q.CHP.
+- 20180524 -- 26th public release. Control-Shift-T/G moves items to the top or
+the bottom of their lists. Songs are read-only during playback (to avoid
+accidents) if the cursor follows the playback (-P flag or Control-P). Reduced
+potential noise when launching the tracker during heavy multitasking. Edited the
+player to properly ignore functions disabled by compile time flags. Wrote an
+example of "writepsg" for MSX. Added DYNADUO1-3.CHP and VAMPIRE1-4.CHP: 400
+sample songs.
+- 20180614 -- minor patch fixing a dangerous bug in Control-Shift-T/G, improving
+the compression analysis performed by the -t option, and allowing SPACE to set
+an instrument on whole patterns within the order list. Added BRONX.CHP,
+CYBERBIG.CHP, MORYFIL2.CHP, SHARRIR1-3.CHP, SPIPEL20-4.CHP, URIDIUM.CHP and
+VIXEN.CHP.
+- 20180808 -- 27th public release. Special case "[1x] A 2x B 1x C" produces the
+output "[1x] A B 128 C", saving one byte. Consistency fixes: typing a silence
+zeroes its instrument, Control-E shows valid messages and Control-Shift-D won't
+erase empty instruments. Inserted two optional features (disabled by default
+with "IF 0" preprocessing statements) in tracker and player sources: exact
+portamento (instead of quick 'n dirty calculation) and half vibrato (whereby
+X0/X8 plays two steps N N+1/N-1 instead of the usual four steps N N+Y N N-Y).
+Added a paragraph about reentrancy to the documentation. Added BATMAN10-36.CHP,
+BEVERLYH.CHP, BOBO0-6.CHP, BUMPY.CHP, CRAZYCM1-2.CHP, DEFCOM.CHP,
+DRLAIR10-29.CHP, FIRELORD-E.CHP, FUMIGATR.CHP, GRYZOR1-2.CHP, GUILTELL.CHP,
+IMPOSSML.CHP, LEVIATHN.CHP, MARACAIB.CHP, MATCHDY2.CHP, MAZEMANJ-L.CHP,
+OCTOPLEX.CHP, OPTBOLT0-2.CHP, OPWOLF0-3.CHP, PROHIBIU.CHP, RAMBO30-2.CHP,
+RAMPAGG.CHP, RENEGA30-8.CHP, ROBIN.CHP, ROBOCOP0-3.CHP, ROBOTCP0-3.CHP,
+SIDEWALK.CHP, SHINOBI0-9.CHP, SKATECRZ.CHP, SOLO.CHP, SUBBUTEO.CHP,
+SUPRTRPR.CHP, SUPSTOCK.CHP and TT-RACER.CHP: 512 sample songs!
+- 20180822 -- minor patch adding colons to player source to ease assembly.
+Target INCLUDE can be "-" (standard output) and can be pipelined. Illegal notes
+("C-A") are filtered. Added AUFMONTY-Z.CHP, FERNANDZ.CHP, FROSTY.CHP,
+LINEFIRE-F.CHP, VINDITR1-4.CHP, XOR.CHP and ZAPTBALS.CHP.
+- 20180910 -- minor patch adding a workaround for YM3B output to be fully
+compatible with the old but still widespread ST-SOUND 5.51 and applying the
+current transposition to the sounds played when typing notes. Added
+BLKLMPZX-Y.CHP and MOUNTMIK.CHP.
+- 20181109 -- 28th public release. Major changes in the tracker and the player:
+octaves above 8 are no longer valid (C-B becomes C-9), pattern length was raised
+from 96 to 128, and new special note "===" ("brake", key A by default) switches
+the volume envelope off and on. Multiple consistency bugfixes: playback within
+the tracker now fits the player's timings (such as ensuring that portamentos are
+obeyed since the first tick rather than one tick later). Command line is more
+strict, such as "chipnsfx -w input.chp" raising an error because there's no
+"output.wav" parameter. -X shows hexadecimal volumes during playback. Removed
+linear amplitudes (nobody was using them) and changed -T to behave like -t and
+raise an error if timings cannot be simplified, in the same fashion -R is a
+strict version of -r; -N N now sets the transposition rather than the old -T N.
+Added a compile time flag (TEMPOLESS) to the player that removes tempo handling
+and reduces footprint but songs require -T when generated. Merged GETOPT--.H
+within CHIPNSFX.C. Added BALLBRKR.CHP, BB128K-0-3.CHP, BRAVSTAR.CHP,
+CATABALM.CHP, IKARIWAR.CHP, LITECORE.CHP, COMMANDO-T.CHP, GUNFRITL-M.CHP,
+MAGICJS1-2.CHP, RESCATLB.CHP, SPOTS94A-B.CHP, STARION1.CHP, STORMLRD.CHP,
+TECHTED3.CHP, THANATOS.CHP, VICTROAD.CHP and WHERTIME.CHP.
+- 20190210 -- minor source cleanup. Removed optimisation from CPC player: it
+struck the tape relay. Added AMAUROTE-L.CHP, ARKA1C64.CHP, COBRAC64.CHP,
+E-MOTION.CHP, GAUNTLET.CHP, KILLRING.CHP, MICROMUS.CHP, PLATOON0-4.CHP,
+TOUR91.CHP and VIKINGS.CHP.
+- 20190326 -- 29th public release. Modified vibrato and glissando parameters so
+they can reach even deeper extremes: many songs need edits to fit the new
+values, as old 1XF equals new 1XD. Removed unused exact portamento and half
+vibrato optional effects. Added ASHTRAY.CHP, MYSTICAL.CHP, THINGSPR.CHP and
+ZYNAPS.CHP, merged RTS-25-51HZ.CHP into RTS-1998-9.CHP.
+- 20190430 -- minor patch fixing a typo in CHIPNSFX.TXT ("LD B,$F6C0" had to be
+"LD BC,$F6C0") and adding basic sanity checks to song loading. Added
+ASPHALT.CHP, CAVEMANI-J.CHP, DIZZYDTR.CHP, DIZZYPYF.CHP, MOONTORC.CHP,
+STARWARS.CHP and SUPERKID-F.CHP.
+- 20190731 -- 30th public release. The tracker is GPL, the player is LGPL.
+Upgraded GCC to 5.1.0. New slow glissandos with 1X0 and 1X8: frequency rises (0)
+or falls (8) 1 unit on every X steps, unlike fast glissandos (10X) where
+frequency rises (X between 1 and 7) or falls (X between 9 and F) units on every
+single step. Added ALEHOP.CHP, ARCYESOD.CHP, BLOODBRS.CHP, BOUNDER.CHP,
+COLT36.CHP, FUTUREKN.CHP, MADDOG.CHP, MENACE-1-3.CHP, NAVYSLS1-7.CHP,
+PACLAND0-4.CHP, PYJAMA.CHP, RUNGAUNT.CHP, SANXION1-2.CHP, TEMPTATN.CHP,
+TMHT1.CHP and TRIVIALP.CHP.
+- 20191003 -- minor patch fixing a bug where Control-G could "shift" the
+portamento instrument down, and another one where songs that looped on empty
+patterns could forget to store the right instrument data after the loop. Added
+BOULDASH.CHP, DDRAGON0-2.CHP, MACH3.CHP, MASTUNIV.CHP, MONTYRUO-P.CHP,
+RACETIME.CHP and RLSTUNTX.CHP.
+- 20200331 -- 31st public release. New flag PREBUILT (+256) to allow compiling
+just the chip_play routine and rely on a predefined chipnsfx_bss table for
+softwares with just one song and no sound effects. Reduced mixer+noise
+clobbering in the player and added more sanity checks in the tracker, such as
+avoiding storing useless instrument data on portamentos. Added BURNRUB1-5.CHP,
+COMICBKR-U.CHP, DRDESTRU.CHP, DRUIDRMX.CHP, FINDKEEP-Q.CHP, FLUFF1-2.CHP,
+FROGALOT.CHP, KENDOWAR.CHP, KNIGHTYM-N.CHP, OPGUNSHP-Q.CHP, RICKDG1A-G.CHP,
+RICKDG2A-H.CHP, ROADBLST.CHP, ROBOCOP4.CHP, SILKWORM.CHP, SPELLBND-E.CHP,
+STEG1-2.CHP, STORMBRI-J.CHP, SUBWAYVG.CHP, SUPWBOY1-2.CHP and TINTINLN.CHP: 679
+songs!
+- 20200430 -- minor patch adding the option -L that generates a song header
+named after the -l label and allows generating fully self-contained song data
+files. Added FOLLIN2B.CHP, FOLLINOX.CHP, MADBALLS.CHP, STARDUSU.CHP and
+TYPHOON.CHP.
+- 20200621 -- minor patch fixing a bug where a channel defined as X1+NN ...
+Xn+NN X1+NN ... Xn+NN X1+MM ... Xn+MM X1+MM ... Xn+MM became X1+NN X1+MM in the
+target. New experimental flag AMPL.CACHE (+512) that provides a minor speed
+boost in the player at the expense of requiring more memory. Added BIRDIE.CHP,
+KENDOWAS.CHP, MATAHARI.CHP, NITESHFT.CHP, RAMPARTS-V.CHP, RYGAS-U.CHP,
+SIMPSONS.CHP, STIFFLIP-Q.CHP, TRAPDOOR.CHP and TRIGGER.CHP: 700 songs!
+- 20201109 -- minor patch allowing defining the filename "-" as the standard
+input (song source) or the standard output (INCLUDE target), adding small tweaks
+on the display (show 100..127 as A0..C7 on the leftmost column to keep
+everything aligned) and the player. Added DESPOTIK.CHP, FLINTSTN-O.CHP,
+FORMULA1.CHP, FORMULE.CHP, GILBERTE.CHP, GPSIM64A.CHP, GPSIMCPC-E.CHP,
+GPX750CC.CHP, HUNCHADV.CHP, KETTLE.CHP, MECHANIC-E.CHP, NEVEREND.CHP,
+PHNTMCLB.CHP, POWERPLZ.CHP, THRUSTST.CHP and TUBARUBA.CHP: 721 songs.
+- 20201115 -- minor patch fixing a bug in the file dialog sorting reported by
+Adrián: the sorting forgot to shuffle the filesizes together with the filenames.
+Added JSW64-RH.CHP and RASPUTIN.CHP.
+- 20210127 -- 32nd public release. Major rewrite: CHIPNSFX can be compiled with
+SDL2 ("gcc -O2 -DSDL2 -xc chipnsfx.c -lSDL2 -ochipnsfx") in other platforms than
+Windows. Added HEROBOTX.CHP, HISTEEL3.CHP, IKPLUS.CHP and TWINTUV8.CHP.
+- 20210129 -- minor patch restoring the filesize field in the file dialog, lost
+in version 20210127.
+- 20210418 -- minor patch fixing a bug in the WaveOut timer and a glitch when
+testing instruments: sound must play even if channels are disabled. Pressing
+Control-U on the instrument panel looks for unused instruments. Added
+M_U_L_F-G_.CHP, OUTWORLD.CHP, PULSOIDS.CHP and PULSOIDZ.CHP.
+- 20210421 -- minor patch enabling an experimental flanging effect (digits "108"
+in the tracker): the standard player code grows slightly heavier (832 bytes).
+- 20210522 -- minor patch fine-tuning Control-U so it just scans the patterns,
+tracks and scores for duplicates, and only performs cleanups (merging identical
+patterns, removing unused instruments, sorting the scores) if Shift is pressed.
+Added SHARRIR4.CHP.
+- 20210526 -- minor patch adding a new noise effect (digits "7F" in the tracker)
+that toggles the noise wave into a crunch-like sound. The standard player code
+is now 838 bytes long.
+- 20210626 -- minor patch making vibratos fully stable even in fringe cases
+reported by Adrián, and reworking the +512 experimental flag into a read-only
+mode where the player exclusively relies on the chipnsfx_bss buffer, instead of
+using self-modifying operations, also following an idea from Adrián.
+- 20211113 -- minor patch adding minimal UTF-8 support to the SDL2 interface on
+non-Windows systems and tweaking the player's stable vibratos fix. Added
+DESPERA0.CHP and FOXBACK1-4.CHP.
+- 20211119 -- minor patch adding the command line option `-!` to extend the
+buffer length on execution time (compare with the compile time parameter
+`-DSDL2_DOUBLE_QUEUE`), as well as mouse support (partial on Win32, full on
+SDL2).
+- 20220113 -- minor patch fixing a bug in the song loader (reported by
+ZJoyKiLer) and warnings in the YM3B and WAVE savers and the user interface.
+Added HUNCHMUZ.CHP.
+- 20220806 -- minor patch fine-tuning the SDL2 buffer size and the main loop
+delay (suggested by Kawe). Added BOMBUZAL.CHP and BURNINR5.CHP.
+- 20220915 -- minor patch optimising the player's BUILTIN mode, where the
+internal functions 7, 9 and B are never used and can be thus safely removed, and
+removing the obsolete ABRIDGED mode; its place is now occupied by SONG_ONLY,
+that removes functions 7, 9 and B as well. The tracker's file dialog can warn
+the user against accidental overwrites. The SDL2 version shows the program icon
+on the window caption.
+- 20221030 -- minor patch redrawing the icon and ensuring that it looks the same
+on Win32 and SDL2. Added MOTOS1-3.CHP.
+- 20221121 -- minor patch improving the player's dual mode noise mixer, fixing
+sound bugs in "Dire Dare".
+- 20221212 -- minor patch improving and documenting a SDL2-only key, Control-J:
+it sets the text style to normal, bold, italic or thin. Similarly, the command
+line options `-$`, `-$$` and `-$$$` set the text style. Added CHASEHQ1-2.CHP,
+I3TENIS1-2.CHP, LWTENNIS.CHP, RASPUTIH.CHP and TIMEMACH.CHP: 750 songs!
+- 20221231 -- minor patch fixing a bug in the file dialog after loading a song
+from the commandline and trying to save it back, and removing the now useless
+option `-k STR`. Added DEVIANTS.CHIP and SPIKYHAR.CHP. Happy new year 2023!
+- 20230216 -- minor patch adding drag-and-drop to the SDL2 version: the tracker
+will load songs dragged into the window. The command line options `-Q`, `-QQ`...
+apply to WAVE output only; the tracker always assumes `-Q`. Added AFTEROID.CHP,
+DIPDIP.CHP, HUMPHREY.CHP and LIVISTN0.CHP.
+- 20230730 -- minor patch removing the confirmation prompt in the SDL2 version
+when closing the window on an unmodified song. Added FUNKYMUS-T.CHP,
+GHOSTCPC.CHP, GHOSTMSX.CHP, MASK4-5.CHP, PIPPOLS0-5.CHP and ROLLRON1-4.CHP.
+- 20240119 -- minor patch fixing several warnings and a potential error in
+64-bit systems in the tracker, and adding a 2-byte size optimisation devised by
+Jean-Marie to the player's read-only mode. Added BUBBLEMX.CHP, BUBBLEST.CHP,
+BOULDSHR.CHP, MONACOGP.CHP and TRAFFIC.CHP: 777 songs!
+- 20240224 -- minor patch improving non-Win32 compatibility ('realpath' behaves
+differently in Alpine Linux because it's built upon MUSL instead of GLIBC) and
+adding a new size optimisation from Jean-Marie. Added COCOATM0-1.CHP.
+- 20240328 -- minor patch changing the OEM characters into ASCII. Added
+MPHOENIX.CHP.
+- 20240422 -- minor patch adding a player size optimisation from Jean-Marie and
+fixing bugs in systems where "unsigned" is the default "char" setting, f.e.
+Raspberry Pi 400. Added GALIOUS1-2.CHP and GREMLIND.CHP.

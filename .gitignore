@@ -3,4 +3,5 @@
 /result
 /uploads
 /vendor
-/public/music
+/music/music
+/logs

@@ -1,0 +1,370 @@
+ if DEBUG ; SPECTRUM 128k
+
+load = $5CCB
+type = 0 ; BASIC
+exec = 0
+; SIMPLE PLUS3DOS HEADER
+ org load-128
+ db "PLUS3DOS",26,1,0
+ dw 128+last-load,0
+ db type
+ dw last-load,exec,last-load
+ ds 105
+ db (632+type+(exec&255)+(exec>>8)+((128+last-load)&255)+((128+last-load)>>8)+2*((last-load)&255)+2*((last-load)>>8))&255
+; Paolo Ferraris' BASIC jump to $5CCB; ACHLF!
+ nop 4
+ db $DE,$C0,$37,$0E,$8F,$39,$96
+
+boot di
+ im 2
+ ld a,$3B ; works on all models; $38, $39 and $3A are valid on 48k, 128k and +2 but not on +3!
+ ld i,a
+ ld a,$18
+ ld ($FFFF),a ; JR $FFF4
+ ld hl,$C9FB
+ ld ($FFF4),hl ; EI, RET
+ ld hl,$4000
+ ld de,$4000+1
+stripes1 ld bc,$0400
+ ld a,h
+ rrca
+ rrca
+ rrca
+ sbc a
+ ld (hl),a
+ ldir
+ ld a,h
+ cp $58
+ jr c,stripes1
+; ld hl,$5800
+; ld de,$5800+1
+ ld bc,$0300-1
+ ld (hl),64+7
+ ldir
+
+target = $FA00
+
+ ld sp,$FFF4
+ ld hl,reloc
+ ld de,target
+ ld bc,reloc_-reloc
+ push de
+ ldir
+ ret
+
+ else ; AMSTRAD CPC et al
+
+load = $0100
+type = 2 ; BINARY
+exec = boot
+; SIMPLE AMSDOS HEADER
+ org load-$80
+ ds 18
+ db type
+ dw 0,load
+ ds 1
+ dw last-load,exec
+ ds 36
+ dw last-load
+ ds 1
+ dw type+(load&255)+(load>>8)+2*((last-load)&255)+2*((last-load)>>8)+(exec&255)+(exec>>8)
+ ds 59
+
+boot di
+ ld hl,$C000
+ ld de,$C000+1
+ ld bc,$4000-1
+ ld (hl),l
+ ldir
+ ld hl,$C000+$1000
+ ld de,$C000+$1000+1
+ ld bc,$2000-1
+ ld (hl),c
+ ldir
+ ld bc,$7F03
+ ld de,$544B
+ dw $71ED
+ out (c),d
+ out (c),c
+ out (c),e
+ ld hl,$108C+1
+ out (c),h
+ out (c),l
+ ld hl,$C9FB
+ ld ($38),hl
+
+target ;
+
+ endif
+
+reloc ;
+
+ ei
+ ld hl,songlist
+
+play ;
+ push hl
+ call chip_stop-reloc+target
+ pop hl
+
+ call chip_song-reloc+target
+ ld e,(hl)
+ inc hl
+ push hl
+
+ call spacebar-reloc+target
+ jr nc,$-3
+
+ call playback-reloc+target
+
+ call chip_stop-reloc+target
+
+ pop hl
+ ld a,l
+ cp songlist_&255
+ jr nz,$+5
+ ld hl,songlist
+
+ jr play
+
+; ----------------------------------------------------------------
+
+ if DEBUG ; SPECTRUM 128k
+
+playback ld d,e
+playstep push de
+ halt
+ ld a,10
+ ld b,0
+ djnz $
+ dec a
+ jr nz,$-3
+ dec d
+ ld a,7 ; WHITE: playback
+ out ($FE),a
+ call z,chip_play-reloc+target
+ xor a
+ out ($FE),a ; BLACK: remainder
+ pop de
+ dec d
+ jr nz,playstep
+ call spacebar-reloc+target
+ jr c,playback
+ ret
+
+spacebar ;
+ ld bc,$7FFE
+ in a,(c)
+ rrca
+ ret
+
+CHIPNSFX_FLAG = 1;+128
+writepsg = $-reloc+target ; A=BYTE,C=REG.; -
+ push bc
+ push af
+ ld a,c
+ ld bc,$FFFD;SELECT
+ out (c),a
+ pop af
+ ld b,$BF;UPDATE
+ out (c),a
+ pop bc
+ ret
+
+ else ; AMSTRAD CPC et al
+
+playback ld d,e
+playstep push de
+ ld b,$F5
+ in a,(c)
+ rrca
+ jr c,$-3
+ in a,(c)
+ rrca
+ jr nc,$-3
+ dec d
+ halt
+ halt
+ halt
+ halt
+ ld bc,$7F4B ; WHITE: playback
+ out (c),c
+ call z,chip_play
+ ld bc,$7F40 ; GRAY: remainder of the interrupt
+ out (c),c
+ halt
+ ld c,$54 ; BLACK: the other five interrupts
+ out (c),c
+ pop de
+ dec d
+ jr nz,playstep
+
+ call spacebar
+ jr c,playback
+ ret
+
+spacebar ;
+ ld bc,$F40E
+ out (c),c
+ ld bc,$F6C0;SELECT
+ out (c),c
+ dw $71ED;CPC PLUS?
+ ld bc,$F792;PIO-R-
+ out (c),c
+ ld bc,$F645;LISTEN
+ out (c),c
+ ld b,$F4
+ in a,(c)
+ ld bc,$F782;PIO-W-
+ out (c),c
+ dec b
+ dw $71ED;CPC PLUS?
+ add a
+ ret
+
+CHIPNSFX_FLAG = 0;+128
+writepsg ; A=BYTE,C=REG.; -
+ push bc
+ ld b,$F4
+ out (c),c
+ ld bc,$F6C0;SELECT
+ out (c),c
+ dw $71ED;CPC PLUS!
+ ld b,$F4
+ out (c),a
+ ld bc,$F680;UPDATE
+ out (c),c
+ dw $71ED;CPC PLUS!
+ pop bc
+ ret
+
+ endif
+
+chipnsfx = $-reloc+target
+ include "chipnsfx.i80"
+
+reloc_ ;
+
+; ----------------------------------------------------------------
+
+songlist ;
+
+ dw frogalot_a-$-2
+ dw frogalot_b-$-2
+ dw frogalot_c-$-2
+ db 1
+
+ dw oh_mummy_a-$-2
+ dw oh_mummy_b-$-2
+ dw oh_mummy_c-$-2
+ db 2
+
+ dw rolandgs_a-$-2
+ dw rolandgs_b-$-2
+ dw rolandgs_c-$-2
+ db 2
+
+ dw rointime_a-$-2
+ dw rointime_b-$-2
+ dw rointime_c-$-2
+ db 2
+
+ dw arkanoid_a-$-2
+ dw arkanoid_b-$-2
+ dw arkanoid_c-$-2
+ db 1
+
+ dw cray_5_a-$-2
+ dw cray_5_b-$-2
+ dw cray_5_c-$-2
+ db 2
+
+ dw survivor_a-$-2
+ dw survivor_b-$-2
+ dw survivor_c-$-2
+ db 2
+
+ dw meganovb_a-$-2
+ dw meganovb_b-$-2
+ dw meganovb_c-$-2
+ db 1
+
+ dw cosanost_a-$-2
+ dw cosanost_b-$-2
+ dw cosanost_c-$-2
+ db 1
+
+ dw bactron_a-$-2
+ dw bactron_b-$-2
+ dw bactron_c-$-2
+ db 1
+
+ dw burninr1_a-$-2
+ dw burninr1_b-$-2
+ dw burninr1_c-$-2
+ db 2
+
+ dw rygar_a-$-2
+ dw rygar_b-$-2
+ dw rygar_c-$-2
+ db 1
+
+ dw solomon1_a-$-2
+ dw solomon1_b-$-2
+ dw solomon1_c-$-2
+ db 1;2
+
+ dw ateam_a-$-2
+ dw ateam_b-$-2
+ dw ateam_c-$-2
+ db 1
+
+ dw loadsong_a-$-2
+ dw loadsong_b-$-2
+ dw loadsong_c-$-2
+ db 2
+
+songlist_ ; END OF LIST
+
+; ----------------------------------------------------------------
+
+ include "frogalot.mus" ; 20170124-1247
+
+ include "oh_mummy.mus" ; 20160221-1942
+
+ include "rolandgs.mus"
+
+ include "rointime.mus" ; 20170311-0844
+
+ include "arkanoid.mus" ; 20171216-0000
+
+ include "cray_5.mus" ; 20170209-1250
+
+ include "survivor.mus" ; 20170221-0140
+
+ include "meganovb.mus"
+
+ include "cosanost.mus" ; 20170222-2105
+
+ include "bactron.mus" ; 20170225-2220
+
+ include "burninr1.mus"
+
+ include "rygar.mus" ; 20170222-1015
+
+ include "solomon1.mus" ; 20170221-1934
+
+ include "ateam.mus"
+
+ include "loadsong.mus" ; 20170221-1045
+
+; ----------------------------------------------------------------
+
+chipnsfx_bss ; ds CHIPNSFX_TOTAL
+
+; ----------------------------------------------------------------
+
+ dw chip_last-chip_base
+
+last
+ end
