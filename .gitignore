@@ -1,7 +1,6 @@
 /.idea
-/binaries
-/result
-/uploads
-/vendor
 /music/music
-/logs
+/music_back/vendor/
+/music_back/uploads/
+/music_back/result/
+/music_back/logs/
